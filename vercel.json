@@ -1,5 +1,4 @@
 {
-  "framework": "other",
   "buildCommand": "rm -rf dist && mkdir -p dist && cp -r src/job_hunter/web_assets/. dist/",
   "outputDirectory": "dist",
   "devCommand": "npx serve src/job_hunter/web_assets -p 8787",
