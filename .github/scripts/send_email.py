@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Send email job - triggered via workflow_dispatch for specific company."""
 import os
-import json
 import sys
+import json
 from datetime import datetime
+
+# Add repo root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.shared.supabase_client import get_supabase_admin
 from scripts.shared.gmail import send_gmail

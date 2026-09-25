@@ -7,8 +7,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import httpx
 
-from .crypto import decrypt_str
-from .supabase_client import get_supabase_admin
+from scripts.shared.crypto import decrypt_str
+from scripts.shared.supabase_client import get_supabase_admin
 
 async def get_user_gmail_token(user_id: str) -> str:
     """Get decrypted Gmail access token for a user."""

@@ -4,8 +4,11 @@ import os
 import sys
 import json
 
+# Add repo root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from scripts.shared.supabase_client import get_supabase_admin
-from scripts.shared.serpapi import search_companies
+from scripts.shared.serpapi import search_companies, get_serpapi_key
 
 async def main():
     # Get parameters from environment

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Daily enrichment job - searches companies via SerpApi and saves to Supabase."""
 import os
+import sys
 import httpx
 from datetime import datetime
+
+# Add repo root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.shared.supabase_client import get_supabase_admin
 from scripts.shared.crypto import decrypt_str
