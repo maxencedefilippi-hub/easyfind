@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: easyfind-api
+    runtime: python
+    rootDir: src/
+    buildCommand: pip install -r ../backend/requirements.txt
+    startCommand: cd ../backend && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        value: https://nkhcdkvepcjyxpwiattc.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        value: 882524442727-8t4bmdg149d23c9ka8eo0biof731u0fc.apps.googleusercontent.com
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://easyfind-phiy.vercel.app/auth/google/callback
+      - key: PYTHON_VERSION
+        value: 3.11.0
