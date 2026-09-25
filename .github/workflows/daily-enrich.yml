@@ -1,0 +1,28 @@
+name: Daily Enrichment
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 6h UTC = 8h heure française
+  workflow_dispatch:      # déclenchable manuellement
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      SERPAPI_SHARED_KEY: ${{ secrets.SERPAPI_SHARED_KEY }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      PYTHON_VERSION: '3.11'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install -r backend/requirements.txt
+      - name: Run enrichment
+        run: python .github/scripts/enrich.py

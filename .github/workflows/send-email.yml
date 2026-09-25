@@ -1,0 +1,57 @@
+name: Send Email
+on:
+  workflow_dispatch:
+    inputs:
+      user_id:
+        description: 'User ID'
+        required: true
+        type: string
+      company_id:
+        description: 'Company ID'
+        required: true
+        type: string
+      subject:
+        description: 'Email subject'
+        required: true
+        type: string
+      body_text:
+        description: 'Email body (plain text)'
+        required: true
+        type: string
+      body_html:
+        description: 'Email body (HTML)'
+        required: false
+        type: string
+      to_email:
+        description: 'Recipient email (optional)'
+        required: false
+        type: string
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install supabase httpx cryptography python-dotenv
+      - name: Send email
+        env:
+          COMPANY_ID: ${{ github.event.inputs.company_id }}
+          USER_ID: ${{ github.event.inputs.user_id }}
+          SUBJECT: ${{ github.event.inputs.subject }}
+          BODY_TEXT: ${{ github.event.inputs.body_text }}
+          BODY_HTML: ${{ github.event.inputs.body_html }}
+          TO_EMAIL: ${{ github.event.inputs.to_email }}
+        run: python .github/scripts/send_email.py

@@ -1,0 +1,47 @@
+name: SerpApi Search
+on:
+  workflow_dispatch:
+    inputs:
+      user_id:
+        description: 'User ID'
+        required: true
+        type: string
+      session_id:
+        description: 'Session ID'
+        required: true
+        type: string
+      query:
+        description: 'Search query'
+        required: true
+        type: string
+      location:
+        description: 'Location'
+        required: false
+        type: string
+        default: 'France'
+
+jobs:
+  serpapi-search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      SERPAPI_SHARED_KEY: ${{ secrets.SERPAPI_SHARED_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install supabase httpx cryptography python-dotenv
+      - name: Run SerpApi search
+        env:
+          USER_ID: ${{ github.event.inputs.user_id }}
+          SESSION_ID: ${{ github.event.inputs.session_id }}
+          QUERY: ${{ github.event.inputs.query }}
+          LOCATION: ${{ github.event.inputs.location }}
+        run: python .github/scripts/serpapi_search.py
