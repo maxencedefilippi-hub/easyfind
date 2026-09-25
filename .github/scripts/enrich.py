@@ -4,8 +4,8 @@ import os
 import httpx
 from datetime import datetime
 
-from .shared.supabase_client import get_supabase_admin
-from .shared.crypto import decrypt_str
+from scripts.shared.supabase_client import get_supabase_admin
+from scripts.shared.crypto import decrypt_str
 
 SERPAPI_ENGINE = "google_maps"
 

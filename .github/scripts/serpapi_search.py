@@ -4,8 +4,8 @@ import os
 import sys
 import json
 
-from .shared.supabase_client import get_supabase_admin
-from .enrich import search_serpapi, get_serpapi_key
+from scripts.shared.supabase_client import get_supabase_admin
+from scripts.shared.serpapi import search_companies
 
 async def main():
     # Get parameters from environment
@@ -22,7 +22,7 @@ async def main():
     
     try:
         api_key = get_serpapi_key(supabase, user_id)
-        companies = await search_serpapi(query, location, api_key)
+        companies = await search_companies(query, location, api_key)
         
         if not companies:
             print("No companies found")

@@ -3,8 +3,8 @@
 import os
 from datetime import datetime
 
-from .shared.supabase_client import get_supabase_admin
-from .shared.gmail import send_gmail
+from scripts.shared.supabase_client import get_supabase_admin
+from scripts.shared.gmail import send_gmail
 
 async def run_user_autopilot(supabase, user_id: str, session_id: str, settings: dict):
     """Run autopilot pipeline for a single user session."""

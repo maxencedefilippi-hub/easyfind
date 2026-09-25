@@ -5,8 +5,8 @@ import json
 import sys
 from datetime import datetime
 
-from .shared.supabase_client import get_supabase_admin
-from .shared.gmail import send_gmail
+from scripts.shared.supabase_client import get_supabase_admin
+from scripts.shared.gmail import send_gmail
 
 async def main():
     # Get parameters from environment (passed by workflow_dispatch)
