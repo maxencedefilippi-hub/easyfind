@@ -102,7 +102,7 @@ def main():
     supabase = get_supabase_admin()
     
     # Get all active users
-    users = supabase.select("users", filters={"is_active": True})
+    users = supabase.select("users")
     
     total_processed = 0
     for user in users:
