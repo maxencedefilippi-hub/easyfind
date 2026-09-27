@@ -1,10 +1,43 @@
 <!doctype html>
 <html lang="fr">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EasyFind</title>
-    <link rel="stylesheet" href="/static/app.css" />
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>EasyFind</title>
+      <style>
+        :root {
+          --foreground: #1e293b;
+          --muted-foreground: #64748b;
+          --accent: #0f172a;
+          --border: #cbd5e1;
+          --card: #f1f5f9;
+        }
+        * { box-sizing: border; }
+        body { margin: 0; font-family: system-ui, sans-serif; color: var(--foreground); background: var(--card); }
+        .shell { display: flex; height: 100vh; }
+        aside.sidebar { width: 260px; background: var(--accent); color: var(--card); padding: 2rem 1.5rem; }
+   .brand { margin-bottom: 2rem; }
+   .brand-mark { font-size: 2rem; font-weight: bold; color: #94a3b8; margin-bottom: 0.5rem; }
+   nav.nav { display: flex; flex-direction: column; gap: 0.5rem; }
+   nav.nav a { color: var(--muted-foreground); text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.875rem; }
+   nav.nav a.active { background: var(--foreground); color: var(--card); }
+   main.main { flex: 1; padding: 2rem; max-width: 100%; }
+   .topbar { background: white; padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+   .top-actions { margin-top: 1rem; }
+   .status-band { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+   .session-topline { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+   .session-control { flex: 1; }
+   .connection-cluster { display: flex; gap: 1rem; flex-wrap: wrap; }
+   .connection-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; min-width: 180px; }
+   .connection-dot { width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
+   small { color: var(--muted-foreground); font-size: 0.75rem; }
+   h2 { color: var(--foreground); font-size: 1.25rem; margin-bottom: 1rem; }
+   h1 { font-size: 1.5rem; color: var(--foreground); margin: 0; }
+   p { color: var(--muted-foreground); font-size: 0.875rem; }
+   .secondary-button, .refresh-button { background: #e2e8f0; border: none; padding: 0.5rem 1rem; border-radius: 6px; color: #64748b; font-size: 0.875rem; cursor: pointer; }
+   .secondary-button:hover, .refresh-button:hover { background: #cbd5e1; color: #1e293b; }
+   @media (max-width: 768px) { .sidebar { width: 100%; flex: none; } .main { margin-left: 0; } }
+      </style>
   </head>
   <body>
     <div class="shell">
@@ -543,6 +576,6 @@
       </div>
     </div>
 
-    <script src="./app.js?v=13"></script>
+    <script src="./app.js?v=14"></script>
   </body>
 </html>
