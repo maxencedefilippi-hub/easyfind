@@ -1097,6 +1097,7 @@ function renderSessions() {
   const session = state.session || {};
   const sessions = session.sessions || [];
   const select = $("sessionSelect");
+  if (!select) return;
   const currentValue = select.value || session.active_id || "";
   select.innerHTML = sessions
     .map(
