@@ -148,16 +148,12 @@ class SupabaseSyncClient:
                         url += f"&{k}={op}.{val}"
                 else:
                     url += f"&{k}=eq.{v}"
-        if order:
-            url += f"&order={order}"
-        if limit:
-            url += f"&limit={limit}"
-        if offset:
-            url += f"&offset={offset}"
-        return url
-    
-    def select(self, table: str, filters: Optional[Dict] = None,
-               select: str = "*", order: Optional[str] = None,
+        if order:                else:
+                    # Convert Python bool to lowercase for PostgREST
+                    if isinstance(v, bool):
+                        v = "true" if v else "false"
+                    url += f"&{k}=eq.{v}"
+        if order:        select: str = "*", order: Optional[str] = None,
                limit: Optional[int] = None, offset: Optional[int] = None,
                single: bool = False) -> Any:
         url = self._build_url(table, filters, select, order, limit, offset)
