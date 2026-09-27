@@ -106,7 +106,7 @@ async function showAuthScreen() {
           </button>
           <button id="emailLogin" class="btn-secondary" style="width:100%;">Se connecter avec email</button>
           <p style="margin-top:20px;font-size:12px;color:var(--text-tertiary);">
-            ou inscrivez-vous depuis <a href="/settings.html" style="color:var(--accent);">l'onglet Paramétrage</a>
+            ou inscrivez-vous depuis <a href="./settings.html" style="color:var(--accent);">l'onglet Paramétrage</a>
           </p>
         </div>
       </div>
@@ -116,13 +116,13 @@ async function showAuthScreen() {
       const client = await createSupabaseClient();
       const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin + '/settings.html' }
+        options: { redirectTo: window.location.origin + '/easyfind/settings.html' }
       });
       if (error) alert(error.message);
     });
     
     safeAddListener('emailLogin', 'click', () => {
-      window.location.href = '/settings.html';
+      window.location.href = './settings.html';
     });
   }
 }
