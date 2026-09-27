@@ -34,6 +34,9 @@ class SupabaseRestClient:
                     for op, val in v.items():
                         url += f"&{k}={op}.{val}"
                 else:
+                    # Convert Python bool to lowercase for PostgREST
+                    if isinstance(v, bool):
+                        v = "true" if v else "false"
                     url += f"&{k}=eq.{v}"
         
         if order:
