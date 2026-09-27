@@ -13,14 +13,19 @@ from scripts.shared.crypto import decrypt_str
 
 SERPAPI_ENGINE = "google_maps"
 
+
 def get_serpapi_key(supabase, user_id: str) -> str:
     """Get user's SerpApi key (decrypted) or shared key."""
-    serpapi_res = supabase.table("serpapi_keys").select("api_key_enc, used_this_month, monthly_quota").eq("user_id", user_id).single().execute()
+    res = supabase.select(
+        "serpapi_keys", 
+        filters={"user_id": user_id}, 
+        single=True
+    )
     
-    if serpapi_res.data:
-        if serpapi_res.data["used_this_month"] >= serpapi_res.data["monthly_quota"]:
+    if res:
+        if res["used_this_month"] >= res["monthly_quota"]:
             raise Exception(f"Monthly SerpApi quota exceeded for user {user_id}")
-        return decrypt_str(serpapi_res.data["api_key_enc"])
+        return decrypt_str(res["api_key_enc"])
     
     # Fallback to shared key
     shared_key = os.environ.get("SERPAPI_SHARED_KEY")
@@ -28,10 +33,11 @@ def get_serpapi_key(supabase, user_id: str) -> str:
         raise Exception(f"No SerpApi key configured for user {user_id}")
     return shared_key
 
+
 async def search_serpapi(query: str, location: str, api_key: str) -> list:
     """Call SerpApi and return parsed company results."""
     params = {
-        "engine": SERPAPI_ENGINE,
+        "engine": "google_maps",
         "q": f"{query} {location}",
         "api_key": api_key,
         "hl": "fr",
@@ -58,14 +64,13 @@ async def search_serpapi(query: str, location: str, api_key: str) -> list:
             "status": "new"
         })
     
-    # Increment usage if user has their own key
     return companies
+
 
 async def enrich_user_companies(supabase, user_id: str, session_id: str, settings: dict):
     """Enrich companies for a specific user/session."""
     query = settings.get("search_query")
     location = settings.get("search_location", "France")
-    radius_km = settings.get("search_radius_km", 50)
     
     if not query:
         print(f"No search_query in settings for user {user_id}")
@@ -83,45 +88,52 @@ async def enrich_user_companies(supabase, user_id: str, session_id: str, setting
         c["user_id"] = user_id
         c["session_id"] = session_id
     
-    supabase.table("companies").upsert(companies, on_conflict="id").execute()
+    supabase.insert("companies", companies, on_conflict="id")
     
     # Increment usage counter
-    serpapi_res = supabase.table("serpapi_keys").select("used_this_month").eq("user_id", user_id).single().execute()
-    if serpapi_res.data:
-        supabase.rpc("increment_serpapi_usage").execute()
+    serpapi_res = supabase.select("serpapi_keys", filters={"user_id": user_id}, single=True)
+    if serpapi_res:
+        supabase.rpc("increment_serpapi_usage", {})
     
     print(f"Enriched {len(companies)} companies for user {user_id}, session {session_id}")
     return len(companies)
 
-async def main():
+
+def main():
     supabase = get_supabase_admin()
     
     # Get all active users
-    users = supabase.table("users").select("id").eq("is_active", True).execute()
+    users = supabase.select("users", filters={"is_active": True})
     
     total_enriched = 0
-    for user in users.data:
+    for user in users:
         user_id = user["id"]
         
         # Get active sessions with autopilot enabled
-        sessions = supabase.table("sessions").select("*").eq("user_id", user_id).eq("status", "active").eq("autopilot_enabled", True).execute()
+        sessions = supabase.select("sessions", filters={
+            "user_id": user_id, 
+            "status": "active", 
+            "autopilot_enabled": True
+        })
         
-        if not sessions.data:
+        if not sessions:
             continue
         
         # Get user settings
-        settings_res = supabase.table("settings").select("*").eq("user_id", user_id).single().execute()
-        settings = settings_res.data or {}
+        settings_res = supabase.select("settings", filters={"user_id": user_id}, single=True)
+        settings = settings_res or {}
         
-        for session in sessions.data:
+        for session in sessions:
             try:
-                count = await enrich_user_companies(supabase, user_id, session["id"], settings)
+                # Run async enrichment
+                import asyncio
+                count = asyncio.run(enrich_user_companies(supabase, user_id, session["id"], settings))
                 total_enriched += count
             except Exception as e:
                 print(f"Error enriching for user {user_id}, session {session['id']}: {e}")
     
     print(f"Total companies enriched: {total_enriched}")
 
+
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()

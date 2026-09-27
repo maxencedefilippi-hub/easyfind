@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gmail API wrapper for GitHub Actions scripts."""
+"""Gmail API wrapper for GitHub Actions scripts - uses Supabase REST client."""
 import os
 import base64
 from datetime import datetime
@@ -10,17 +10,23 @@ import httpx
 from scripts.shared.crypto import decrypt_str
 from scripts.shared.supabase_client import get_supabase_admin
 
-async def get_user_gmail_token(user_id: str) -> str:
+
+async def get_user_gmail_token(supabase, user_id: str) -> str:
     """Get decrypted Gmail access token for a user."""
-    supabase = get_supabase_admin()
-    token_res = supabase.table("oauth_tokens").select("*").eq("user_id", user_id).eq("provider", "google").single().execute()
+    token_res = supabase.select(
+        "oauth_tokens", 
+        filters={"user_id": user_id, "provider": "google"}, 
+        single=True
+    )
     
-    if not token_res.data:
+    if not token_res:
         raise Exception("Google not connected for user")
     
-    return decrypt_str(token_res.data["access_token_enc"])
+    return decrypt_str(token_res["access_token_enc"])
+
 
 async def send_gmail(
+    supabase,
     user_id: str,
     company_id: str,
     subject: str,
@@ -31,15 +37,18 @@ async def send_gmail(
     """Send email via Gmail API using user's OAuth token."""
     
     # Get access token
-    access_token = await get_user_gmail_token(user_id)
+    access_token = await get_user_gmail_token(supabase, user_id)
     
     # Get company for context
-    supabase = get_supabase_admin()
-    company_res = supabase.table("companies").select("*").eq("id", company_id).eq("user_id", user_id).single().execute()
-    if not company_res.data:
+    company_res = supabase.select(
+        "companies", 
+        filters={"id": company_id, "user_id": user_id}, 
+        single=True
+    )
+    if not company_res:
         raise Exception("Company not found")
     
-    company = company_res.data
+    company = company_res
     to = to_email or company.get("detected_email")
     if not to:
         raise Exception("No recipient email")
@@ -87,15 +96,15 @@ async def send_gmail(
         "sent_at": datetime.utcnow().isoformat()
     }
     
-    email_res = supabase.table("emails").insert(email_data).execute()
+    email_res = supabase.insert("emails", email_data)
     
     # Update company
-    supabase.table("companies").update({
+    supabase.update("companies", {
         "status": "sent",
-        "latest_email_id": email_res.data[0]["id"],
+        "latest_email_id": email_res[0]["id"] if email_res else None,
         "latest_email_status": "sent",
         "latest_email_sent_at": datetime.utcnow().isoformat(),
         "contacted_at": datetime.utcnow().isoformat()
-    }).eq("id", company_id).execute()
+    }, filters={"id": company_id})
     
-    return {"ok": True, "gmail_id": gmail_data.get("id"), "email_id": email_res.data[0]["id"]}
+    return {"ok": True, "gmail_id": gmail_data.get("id"), "email_id": email_res[0]["id"] if email_res else None}

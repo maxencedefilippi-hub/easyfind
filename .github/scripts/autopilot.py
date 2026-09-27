@@ -2,6 +2,7 @@
 """Daily autopilot job - runs qualification pipeline for active sessions."""
 import os
 import sys
+import asyncio
 from datetime import datetime
 
 # Add repo root to path for imports
@@ -10,31 +11,36 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scripts.shared.supabase_client import get_supabase_admin
 from scripts.shared.gmail import send_gmail
 
+
 async def run_user_autopilot(supabase, user_id: str, session_id: str, settings: dict):
     """Run autopilot pipeline for a single user session."""
     print(f"Running autopilot for user {user_id}, session {session_id}")
     
     # Get unqualified companies for this session
-    companies = supabase.table("companies").select("*").eq("user_id", user_id).eq("session_id", session_id).eq("status", "new").execute()
+    companies = supabase.select("companies", filters={
+        "user_id": user_id, 
+        "session_id": session_id, 
+        "status": "new"
+    })
     
-    if not companies.data:
+    if not companies:
         print(f"No new companies to process for session {session_id}")
         return 0
     
     processed = 0
-    for company in companies.data:
+    for company in companies:
         try:
-            # Qualification logic - placeholder, adapt to your needs
+            # Qualification logic
             qualification_score = calculate_qualification_score(company, settings)
             
             # Update company with qualification
             new_status = "qualified" if qualification_score >= 70 else "disqualified"
-            supabase.table("companies").update({
+            supabase.update("companies", {
                 "status": new_status,
                 "qualification_score": qualification_score,
                 "qualification_notes": f"Auto-qualified at {datetime.utcnow().isoformat()}",
                 "updated_at": datetime.utcnow().isoformat()
-            }).eq("id", company["id"]).execute()
+            }, filters={"id": company["id"]})
             
             # If qualified and auto-send enabled, send email
             if new_status == "qualified" and settings.get("autopilot_send_emails", False):
@@ -54,12 +60,13 @@ async def run_user_autopilot(supabase, user_id: str, session_id: str, settings: 
             print(f"Error processing company {company['id']}: {e}")
     
     # Update session last_run_at
-    supabase.table("sessions").update({
+    supabase.update("sessions", {
         "last_run_at": datetime.utcnow().isoformat()
-    }).eq("id", session_id).execute()
+    }, filters={"id": session_id})
     
     print(f"Autopilot processed {processed} companies for session {session_id}")
     return processed
+
 
 def calculate_qualification_score(company: dict, settings: dict) -> int:
     """Calculate qualification score based on company data and settings."""
@@ -90,35 +97,40 @@ def calculate_qualification_score(company: dict, settings: dict) -> int:
     
     return min(100, max(0, score))
 
-async def main():
+
+def main():
     supabase = get_supabase_admin()
     
     # Get all active users
-    users = supabase.table("users").select("id").eq("is_active", True).execute()
+    users = supabase.select("users", filters={"is_active": True})
     
     total_processed = 0
-    for user in users.data:
+    for user in users:
         user_id = user["id"]
         
         # Get active sessions with autopilot enabled
-        sessions = supabase.table("sessions").select("*").eq("user_id", user_id).eq("status", "active").eq("autopilot_enabled", True).execute()
+        sessions = supabase.select("sessions", filters={
+            "user_id": user_id, 
+            "status": "active", 
+            "autopilot_enabled": True
+        })
         
-        if not sessions.data:
+        if not sessions:
             continue
         
         # Get user settings
-        settings_res = supabase.table("settings").select("*").eq("user_id", user_id).single().execute()
-        settings = settings_res.data or {}
+        settings_res = supabase.select("settings", filters={"user_id": user_id}, single=True)
+        settings = settings_res or {}
         
-        for session in sessions.data:
+        for session in sessions:
             try:
-                count = await run_user_autopilot(supabase, user_id, session["id"], settings)
+                count = asyncio.run(run_user_autopilot(supabase, user_id, session["id"], settings))
                 total_processed += count
             except Exception as e:
                 print(f"Error in autopilot for user {user_id}, session {session['id']}: {e}")
     
     print(f"Total companies processed by autopilot: {total_processed}")
 
+
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
