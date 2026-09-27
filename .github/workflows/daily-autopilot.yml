@@ -24,6 +24,6 @@ jobs:
       - name: Install deps
         run: |
           pip install --upgrade pip
-          pip install supabase==2.3.0 httpx==0.25.2 cryptography==41.0.7 python-dotenv==1.0.0 pydantic==2.8.2 pydantic-settings==2.4.0 pydantic[email]==2.8.2
+          pip install httpx==0.25.2 cryptography==41.0.7 python-dotenv==1.0.0 pydantic==2.8.2 pydantic-settings==2.4.0 pydantic[email]==2.8.2
       - name: Run autopilot
         run: python .github/scripts/autopilot.py
