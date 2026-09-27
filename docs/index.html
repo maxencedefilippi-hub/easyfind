@@ -4,11 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>EasyFind</title>
-    <link rel="stylesheet" href="/static/app.css?v=9" />
+    <link rel="stylesheet" href="./app.css?v=9" />
   </head>
   <body>
     <div id="root"></div>
-    <script src="/static/app.js?v=9"></script>
+    <script src="./app.js?v=9"></script>
     <script>
       // Au chargement, vérifier si l'utilisateur est connecté
       document.addEventListener('DOMContentLoaded', async () => {
@@ -19,10 +19,10 @@
           // Aucun token -> laisser app.js afficher l'écran de connexion
           console.log('No auth token - show login screen');
         } else {
-          // Token présent -> valider
+          // Token présent -> valider via Supabase direct
           try {
-            const res = await fetch('http://127.0.0.1:8000/api/health', {
-              headers: { 'Authorization': `Bearer ${token}` }
+            const res = await fetch('https://nkhcdkvepcjyxpwiattc.supabase.co/rest/v1/', {
+              headers: { 'Authorization': `Bearer ${token}`, 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raGNka3ZlcGNqeXhwd2lhdHRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTc1OTYsImV4cCI6MjEwNTY3MzU5Nn0.uKPoW5qg5x7U777nGdjVfCIPyu-D1gG61Z_9iCcXqgg' }
             });
             if (!res.ok) {
               localStorage.removeItem('sb-access-token');
