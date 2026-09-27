@@ -1210,7 +1210,8 @@ function companyStatusFilterCounts() {
 }
 
 function renderSettings() {
-  if (!parameters || $("settings").dataset.loaded) return;
+  if (!parameters || !$("settings")) return;
+  if ($("settings").dataset.loaded) return;
   document.querySelectorAll("[data-param]").forEach((field) => {
     field.value = parameters[field.dataset.param] ?? "";
   });
