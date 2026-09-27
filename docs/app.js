@@ -365,12 +365,48 @@ let emailsCollapsed = localStorage.getItem("dreamsHunterEmailsCollapsed") === "1
 
 const $ = (id) => document.getElementById(id);
 
+function safeSet(id, value) {
+  const el = $(id);
+  if (el) el.textContent = value;
+  return el;
+}
+
+function safeSetStyle(id, prop, value) {
+  const el = $(id);
+  if (el) el.style[prop] = value;
+  return el;
+}
+
+function safeSetClass(id, className) {
+  const el = $(id);
+  if (el) el.className = className;
+  return el;
+}
+
+function safeSetHidden(id, hidden) {
+  const el = $(id);
+  if (el) el.hidden = hidden;
+  return el;
+}
+
+function safeSetDisabled(id, disabled) {
+  const el = $(id);
+  if (el) el.disabled = disabled;
+  return el;
+}
+
+function safeSetValue(id, value) {
+  const el = $(id);
+  if (el) el.value = value;
+  return el;
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll("&", "&")
+    .replaceAll("<", "<")
+    .replaceAll(">", ">")
+    .replaceAll('"', """);
 }
 
 function attr(value) {
@@ -1494,14 +1530,19 @@ function renderSessionChatProgress(progress, mode) {
   const safeProgress = Math.max(0, Math.min(100, Number(progress || 0)));
   sessionChatProgress = safeProgress;
   sessionChatMode = mode || "local";
-  $("sessionChatProgressLabel").textContent = `${safeProgress}%`;
-  $("sessionChatProgressBar").style.width = `${safeProgress}%`;
-  if (sessionChatMode === "openai") {
-    $("sessionChatMode").textContent = "Mode IA OpenAI actif";
-  } else if (sessionChatMode === "local_openai_ready" || sessionChatMode === "openai_fallback") {
-    $("sessionChatMode").textContent = "Mode local, IA indisponible";
-  } else {
-    $("sessionChatMode").textContent = "Mode local gratuit";
+  const progressLabel = $("sessionChatProgressLabel");
+  if (progressLabel) progressLabel.textContent = `${safeProgress}%`;
+  const progressBar = $("sessionChatProgressBar");
+  if (progressBar) progressBar.style.width = `${safeProgress}%`;
+  const modeEl = $("sessionChatMode");
+  if (modeEl) {
+    if (sessionChatMode === "openai") {
+      modeEl.textContent = "Mode IA OpenAI actif";
+    } else if (sessionChatMode === "local_openai_ready" || sessionChatMode === "openai_fallback") {
+      modeEl.textContent = "Mode local, IA indisponible";
+    } else {
+      modeEl.textContent = "Mode local gratuit";
+    }
   }
 }
 
