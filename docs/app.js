@@ -15,6 +15,8 @@ const companyStatuses = [
 
 const emailStatuses = ["generated", "form_generated", "draft_created", "sent", "skipped", "failed"];
 
+console.log('[DEBUG] JS loaded');
+
 const replyStatuses = [
   { value: "", label: "Non renseigné" },
   { value: "no_reply", label: "Pas encore de réponse" },
