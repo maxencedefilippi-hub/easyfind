@@ -2307,20 +2307,32 @@ function bindEvents() {
   document.addEventListener("pointerdown", noteUserInteraction);
   document.addEventListener("keydown", noteUserInteraction);
   bindNavHighlight();
-  $("refreshBtn").addEventListener("click", () => fetchState({ force: true }));
-  $("toggleSetupPanelBtn").addEventListener("click", toggleSetupPanel);
-  $("setupGoActionsBtn").addEventListener("click", () => {
+  const refreshBtn = $("refreshBtn");
+  if (refreshBtn) refreshBtn.addEventListener("click", () => fetchState({ force: true }));
+  const toggleSetupPanelBtn = $("toggleSetupPanelBtn");
+  if (toggleSetupPanelBtn) toggleSetupPanelBtn.addEventListener("click", toggleSetupPanel);
+  const setupGoActionsBtn = $("setupGoActionsBtn");
+  if (setupGoActionsBtn) setupGoActionsBtn.addEventListener("click", () => {
     document.querySelector("#actions").scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  $("copyGoogleGuideBtn").addEventListener("click", () => copyText(googleOAuthMiniGuide()));
-  $("copySerpApiGuideBtn").addEventListener("click", () => copyText(serpApiMiniGuide()));
-  $("googleCredentialsFileInput").addEventListener("change", saveGoogleCredentialsFromFile);
-  $("clearGoogleCredentialsBtn").addEventListener("click", clearGoogleCredentials);
-  $("sessionSelect").addEventListener("change", switchSession);
-  $("createSessionBtn").addEventListener("click", createSessionFromForm);
-  $("serpApiSaveBtn").addEventListener("click", saveSerpApiKeyFromForm);
-  $("serpApiSetupSaveBtn").addEventListener("click", saveSerpApiKeyFromForm);
-  $("companySearch").addEventListener("input", () => {
+  const copyGoogleGuideBtn = $("copyGoogleGuideBtn");
+  if (copyGoogleGuideBtn) copyGoogleGuideBtn.addEventListener("click", () => copyText(googleOAuthMiniGuide()));
+  const copySerpApiGuideBtn = $("copySerpApiGuideBtn");
+  if (copySerpApiGuideBtn) copySerpApiGuideBtn.addEventListener("click", () => copyText(serpApiMiniGuide()));
+  const googleCredentialsFileInput = $("googleCredentialsFileInput");
+  if (googleCredentialsFileInput) googleCredentialsFileInput.addEventListener("change", saveGoogleCredentialsFromFile);
+  const clearGoogleCredentialsBtn = $("clearGoogleCredentialsBtn");
+  if (clearGoogleCredentialsBtn) clearGoogleCredentialsBtn.addEventListener("click", clearGoogleCredentials);
+  const sessionSelect = $("sessionSelect");
+  if (sessionSelect) sessionSelect.addEventListener("change", switchSession);
+  const createSessionBtn = $("createSessionBtn");
+  if (createSessionBtn) createSessionBtn.addEventListener("click", createSessionFromForm);
+  const serpApiSaveBtn = $("serpApiSaveBtn");
+  if (serpApiSaveBtn) serpApiSaveBtn.addEventListener("click", saveSerpApiKeyFromForm);
+  const serpApiSetupSaveBtn = $("serpApiSetupSaveBtn");
+  if (serpApiSetupSaveBtn) serpApiSetupSaveBtn.addEventListener("click", saveSerpApiKeyFromForm);
+  const companySearch = $("companySearch");
+  if (companySearch) companySearch.addEventListener("input", () => {
     clearSelectedCompany();
     resetCompanyVisibleLimit();
     renderCompanies();
