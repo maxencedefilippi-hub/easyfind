@@ -406,7 +406,7 @@ function escapeHtml(value) {
     .replaceAll("&", "&")
     .replaceAll("<", "<")
     .replaceAll(">", ">")
-    .replaceAll('"', """);
+    .replaceAll('"', '"');
 }
 
 function attr(value) {
