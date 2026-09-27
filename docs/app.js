@@ -711,7 +711,7 @@ function restoreSessionChatForActiveSession({ force = false } = {}) {
 async function fetchState({ force = false } = {}) {
   if (actionInProgress && !force) return;
   if (isUserInteracting() && !force) return;
-  const response = await fetch("/functions/v1/api-state");
+  const response = await fetch("https://nkhcdkvepcjyxpwiattc.supabase.co/functions/v1/api-state");
   state = await response.json();
   restoreSessionChatForActiveSession();
   render();
@@ -721,7 +721,7 @@ async function waitForActionDone(timeoutMs = 180000) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     await sleep(450);
-    const response = await fetch("/functions/v1/api-state");
+    const response = await fetch("https://nkhcdkvepcjyxpwiattc.supabase.co/functions/v1/api-state");
     state = await response.json();
     renderSystem();
     if (state.job?.status !== "running") return state.job?.status || "neutral";
@@ -731,13 +731,13 @@ async function waitForActionDone(timeoutMs = 180000) {
 }
 
 async function fetchParameters() {
-  const response = await fetch("/functions/v1/api-parameters");
+  const response = await fetch("https://nkhcdkvepcjyxpwiattc.supabase.co/functions/v1/api-parameters");
   parameters = await response.json();
   renderSettings();
 }
 
 async function fetchPrompts() {
-  const response = await fetch("/functions/v1/api-prompt");
+  const response = await fetch("https://nkhcdkvepcjyxpwiattc.supabase.co/functions/v1/api-prompt");
   promptState = await response.json();
   renderPrompts();
 }
