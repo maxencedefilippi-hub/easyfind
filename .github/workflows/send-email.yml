@@ -45,7 +45,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install supabase httpx cryptography python-dotenv
+          pip install supabase==2.3.0 httpx==0.25.2 cryptography==41.0.7 python-dotenv==1.0.0 pydantic==2.8.2 pydantic-settings==2.4.0 pydantic[email]==2.8.2
       - name: Send email
         env:
           COMPANY_ID: ${{ github.event.inputs.company_id }}
