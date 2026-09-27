@@ -811,13 +811,16 @@ function renderConnections() {
   if (dot) {
     dot.className = `connection-dot ${connected ? "connected" : "disconnected"}`;
   }
-  $("googleConnectionStatus").textContent = connected ? "Google connecté" : "Google non connecté";
-  $("googleConnectionDetail").textContent = googleStatusDetail(google);
+  const googleConnectionStatus = $("googleConnectionStatus");
+  if (googleConnectionStatus) googleConnectionStatus.textContent = connected ? "Google connecté" : "Google non connecté";
+  const googleConnectionDetail = $("googleConnectionDetail");
+  if (googleConnectionDetail) googleConnectionDetail.textContent = googleStatusDetail(google);
   const googleConnectLink = $("googleConnectLink");
-  googleConnectLink.textContent = connected
-    ? "Reconnecter Google"
-    : googleCredentialsPresent
-      ? "Connecter Google"
+  if (googleConnectLink) {
+    googleConnectLink.textContent = connected
+      ? "Reconnecter Google"
+      : googleCredentialsPresent
+        ? "Connecter Google"
       : "Ajouter OAuth Google";
   googleConnectLink.href = googleCredentialsPresent ? "/auth/google/start" : "#setupAssistant";
 
