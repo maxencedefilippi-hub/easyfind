@@ -2315,84 +2315,55 @@ function bindEvents() {
   if (setupGoActionsBtn) setupGoActionsBtn.addEventListener("click", () => {
     document.querySelector("#actions").scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  const copyGoogleGuideBtn = $("copyGoogleGuideBtn");
-  if (copyGoogleGuideBtn) copyGoogleGuideBtn.addEventListener("click", () => copyText(googleOAuthMiniGuide()));
-  const copySerpApiGuideBtn = $("copySerpApiGuideBtn");
-  if (copySerpApiGuideBtn) copySerpApiGuideBtn.addEventListener("click", () => copyText(serpApiMiniGuide()));
-  const googleCredentialsFileInput = $("googleCredentialsFileInput");
-  if (googleCredentialsFileInput) googleCredentialsFileInput.addEventListener("change", saveGoogleCredentialsFromFile);
-  const clearGoogleCredentialsBtn = $("clearGoogleCredentialsBtn");
-  if (clearGoogleCredentialsBtn) clearGoogleCredentialsBtn.addEventListener("click", clearGoogleCredentials);
-  const sessionSelect = $("sessionSelect");
-  if (sessionSelect) sessionSelect.addEventListener("change", switchSession);
-  const createSessionBtn = $("createSessionBtn");
-  if (createSessionBtn) createSessionBtn.addEventListener("click", createSessionFromForm);
-  const serpApiSaveBtn = $("serpApiSaveBtn");
-  if (serpApiSaveBtn) serpApiSaveBtn.addEventListener("click", saveSerpApiKeyFromForm);
-  const serpApiSetupSaveBtn = $("serpApiSetupSaveBtn");
-  if (serpApiSetupSaveBtn) serpApiSetupSaveBtn.addEventListener("click", saveSerpApiKeyFromForm);
-  const companySearch = $("companySearch");
-  if (companySearch) companySearch.addEventListener("input", () => {
+  $("copyGoogleGuideBtn").addEventListener("click", () => copyText(googleOAuthMiniGuide()));
+  $("copySerpApiGuideBtn").addEventListener("click", () => copyText(serpApiMiniGuide()));
+  $("googleCredentialsFileInput").addEventListener("change", saveGoogleCredentialsFromFile);
+  $("clearGoogleCredentialsBtn").addEventListener("click", clearGoogleCredentials);
+  $("sessionSelect").addEventListener("change", switchSession);
+  $("createSessionBtn").addEventListener("click", createSessionFromForm);
+  $("serpApiSaveBtn").addEventListener("click", saveSerpApiKeyFromForm);
+  $("serpApiSetupSaveBtn").addEventListener("click", saveSerpApiKeyFromForm);
+  $("companySearch").addEventListener("input", () => {
     clearSelectedCompany();
     resetCompanyVisibleLimit();
     renderCompanies();
   });
-  const companyStatusFilter = $("companyStatusFilter");
-  if (companyStatusFilter) companyStatusFilter.addEventListener("change", () => {
+  $("companyStatusFilter").addEventListener("change", () => {
     clearSelectedCompany();
     resetCompanyVisibleLimit();
     renderCompanies();
   });
-  const showMoreCompaniesTopBtn = $("showMoreCompaniesTopBtn");
-  if (showMoreCompaniesTopBtn) showMoreCompaniesTopBtn.addEventListener("click", showMoreCompanies);
-  const showMoreCompaniesBtn = $("showMoreCompaniesBtn");
-  if (showMoreCompaniesBtn) showMoreCompaniesBtn.addEventListener("click", showMoreCompanies);
-  const emailStatusFilter = $("emailStatusFilter");
-  if (emailStatusFilter) emailStatusFilter.addEventListener("change", () => {
+  $("showMoreCompaniesTopBtn").addEventListener("click", showMoreCompanies);
+  $("showMoreCompaniesBtn").addEventListener("click", showMoreCompanies);
+  $("emailStatusFilter").addEventListener("change", () => {
     resetEmailVisibleLimit();
     renderEmails();
   });
-  const showMoreEmailsTopBtn = $("showMoreEmailsTopBtn");
-  if (showMoreEmailsTopBtn) showMoreEmailsTopBtn.addEventListener("click", showMoreEmails);
-  const showMoreEmailsBtn = $("showMoreEmailsBtn");
-  if (showMoreEmailsBtn) showMoreEmailsBtn.addEventListener("click", showMoreEmails);
-  const toggleEmailsPanelBtn = $("toggleEmailsPanelBtn");
-  if (toggleEmailsPanelBtn) toggleEmailsPanelBtn.addEventListener("click", toggleEmailsPanel);
-  const saveSettingsBtn = $("saveSettingsBtn");
-  if (saveSettingsBtn) saveSettingsBtn.addEventListener("click", async () => {
+  $("showMoreEmailsTopBtn").addEventListener("click", showMoreEmails);
+  $("showMoreEmailsBtn").addEventListener("click", showMoreEmails);
+  $("toggleEmailsPanelBtn").addEventListener("click", toggleEmailsPanel);
+  $("saveSettingsBtn").addEventListener("click", async () => {
     parameters = collectParameters();
     await runAction("save_parameters", { parameters });
   });
-  const toggleSettingsPanelBtn = $("toggleSettingsPanelBtn");
-  if (toggleSettingsPanelBtn) toggleSettingsPanelBtn.addEventListener("click", toggleSettingsPanel);
-  const savePromptsBtn = $("savePromptsBtn");
-  if (savePromptsBtn) savePromptsBtn.addEventListener("click", async () => {
+  $("toggleSettingsPanelBtn").addEventListener("click", toggleSettingsPanel);
+  $("savePromptsBtn").addEventListener("click", async () => {
     await runAction("save_prompts", { prompts: collectPrompts() });
     await fetchPrompts();
   });
-  const togglePromptsPanelBtn = $("togglePromptsPanelBtn");
-  if (togglePromptsPanelBtn) togglePromptsPanelBtn.addEventListener("click", togglePromptsPanel);
-  const promptUseCase = $("prompt-use_case");
-  if (promptUseCase) promptUseCase.addEventListener("change", () => {
-    promptUseCase.dataset.userChanged = "1";
+  $("togglePromptsPanelBtn").addEventListener("click", togglePromptsPanel);
+  $("prompt-use_case").addEventListener("change", () => {
+    $("prompt-use_case").dataset.userChanged = "1";
     saveSessionChatState();
   });
-  const fillPromptExampleBtn = $("fillPromptExampleBtn");
-  if (fillPromptExampleBtn) fillPromptExampleBtn.addEventListener("click", fillPromptBuilderExample);
-  const analyzeSessionBtn = $("analyzeSessionBtn");
-  if (analyzeSessionBtn) analyzeSessionBtn.addEventListener("click", analyzeSessionAssistant);
-  const applySessionBlueprintBtn = $("applySessionBlueprintBtn");
-  if (applySessionBlueprintBtn) applySessionBlueprintBtn.addEventListener("click", applySessionAssistantBlueprint);
-  const buildPromptsBtn = $("buildPromptsBtn");
-  if (buildPromptsBtn) buildPromptsBtn.addEventListener("click", buildPromptPackFromForm);
-  const sessionChatStartBtn = $("sessionChatStartBtn");
-  if (sessionChatStartBtn) sessionChatStartBtn.addEventListener("click", startSessionChat);
-  const sessionChatSendBtn = $("sessionChatSendBtn");
-  if (sessionChatSendBtn) sessionChatSendBtn.addEventListener("click", sendSessionChatMessage);
-  const sessionChatResetBtn = $("sessionChatResetBtn");
-  if (sessionChatResetBtn) sessionChatResetBtn.addEventListener("click", confirmResetSessionChat);
-  const sessionChatInput = $("sessionChatInput");
-  if (sessionChatInput) sessionChatInput.addEventListener("keydown", (event) => {
+  $("fillPromptExampleBtn").addEventListener("click", fillPromptBuilderExample);
+  $("analyzeSessionBtn").addEventListener("click", analyzeSessionAssistant);
+  $("applySessionBlueprintBtn").addEventListener("click", applySessionAssistantBlueprint);
+  $("buildPromptsBtn").addEventListener("click", buildPromptPackFromForm);
+  $("sessionChatStartBtn").addEventListener("click", startSessionChat);
+  $("sessionChatSendBtn").addEventListener("click", sendSessionChatMessage);
+  $("sessionChatResetBtn").addEventListener("click", confirmResetSessionChat);
+  $("sessionChatInput").addEventListener("keydown", (event) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
       sendSessionChatMessage();
