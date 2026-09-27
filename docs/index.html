@@ -1,39 +1,548 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>EasyFind</title>
-    <link rel="stylesheet" href="./app.css?v=10" />
+    <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <p class="fallback">EasyFind - application de recherche d'emplois</p>
-    <script src="./app.js?v=10"></script>
-    <script>
-      // Au chargement, vérifier si l'utilisateur est connecté
-      document.addEventListener('DOMContentLoaded', async () => {
-        const token = localStorage.getItem('sb-access-token');
-        const userId = localStorage.getItem('sb-user-id');
-        
-        if (!token || !userId) {
-          // Aucun token -> laisser app.js afficher l'écran de connexion
-          console.log('No auth token - show login screen');
-        } else {
-          // Token présent -> valider via Supabase direct
-          try {
-            const res = await fetch('https://nkhcdkvepcjyxpwiattc.supabase.co/rest/v1/', {
-              headers: { 'Authorization': `Bearer ${token}`, 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raGNka3ZlcGNqeXhwd2lhdHRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTc1OTYsImV4cCI6MjEwNTY3MzU5Nn0.uKPoW5qg5x7U777nGdjVfCIPyu-D1gG61Z_9iCcXqgg' }
-            });
-            if (!res.ok) {
-              localStorage.removeItem('sb-access-token');
-              localStorage.removeItem('sb-user-id');
-            }
-          } catch (e) {
-            console.error('Auth check error:', e);
-          }
-        }
-      });
-    </script>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">EF</div>
+          <div>
+            <h1>EasyFind</h1>
+            <p>CRM de prise de contact</p>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="#dashboard" class="active">Accueil</a>
+          <a href="#actions">Recherche</a>
+          <a href="#settings">Pilotage</a>
+          <a href="#prompts">Messages</a>
+          <a href="#companies">Entreprises</a>
+          <a href="#emails">Emails</a>
+        </nav>
+        <div class="side-note">
+          <span class="dot"></span>
+          Brouillons internes, envoi manuel
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="topbar" id="dashboard">
+          <div>
+            <h2>EasyFind</h2>
+          </div>
+          <div class="top-actions">
+            <button id="refreshBtn" class="secondary-button refresh-button" title="Rafraîchir les données">↻ Rafraîchir</button>
+          </div>
+        </section>
+
+        <section class="status-band session-board" aria-live="polite">
+          <div class="session-topline">
+            <div class="session-control">
+              <span class="label">Session active</span>
+              <select id="sessionSelect"></select>
+              <small>Choisis le contexte de recherche à piloter.</small>
+            </div>
+            <div class="connection-cluster">
+              <div class="connection-card">
+                <span class="label">Google</span>
+                <div class="connection-line">
+                  <span id="googleConnectionDot" class="connection-dot"></span>
+                  <strong id="googleConnectionStatus">chargement</strong>
+                </div>
+                <small id="googleConnectionDetail"></small>
+                <a id="googleConnectLink" href="/auth/google/start">Connecter Google</a>
+              </div>
+              <div class="connection-card serpapi-card">
+                <span class="label">SerpApi</span>
+                <div class="connection-line">
+                  <span id="serpApiConnectionDot" class="connection-dot"></span>
+                  <strong id="serpApiConnectionStatus">chargement</strong>
+                </div>
+                <small id="serpApiConnectionDetail"></small>
+                <div class="api-key-row">
+                  <input id="serpApiKeyInput" type="password" placeholder="Clé API SerpApi" autocomplete="off" />
+                  <button id="serpApiSaveBtn">Connecter</button>
+                </div>
+                <a href="https://serpapi.com/manage-api-key" target="_blank" rel="noreferrer">Créer / voir ma clé</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="session-create">
+            <span class="label">Nouvelle session</span>
+            <div class="session-create-row">
+              <input id="newSessionName" placeholder="Nom de session" />
+              <select id="newSessionKind">
+                <option value="job_search">Job</option>
+                <option value="sales_prospecting">Commercial</option>
+                <option value="find_clients">Clients</option>
+                <option value="partnership">Partenariat</option>
+                <option value="supplier">Fournisseurs</option>
+                <option value="custom">Autre</option>
+              </select>
+              <button id="createSessionBtn">Créer</button>
+            </div>
+          </div>
+
+          <div class="session-list-panel">
+            <div class="session-list-heading">
+              <div>
+                <span class="label">Sessions créées</span>
+                <small>Pause/play par session, suppression sécurisée si besoin.</small>
+              </div>
+            </div>
+            <div id="sessionToggles" class="session-toggles"></div>
+          </div>
+
+          <div class="session-meta-grid">
+            <div>
+              <span class="label">Recherche quotidienne automatique</span>
+              <strong id="autopilotStatus">chargement</strong>
+            </div>
+            <div>
+              <span class="label">Actions contact aujourd'hui</span>
+              <strong id="draftLimit">0 / 10</strong>
+            </div>
+            <div>
+              <span class="label">Dernière action</span>
+              <strong id="jobStatus">aucune</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="setup-assistant panel" id="setupAssistant">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Démarrage</p>
+              <h3>Configuration rapide</h3>
+            </div>
+            <button
+              id="toggleSetupPanelBtn"
+              class="icon-button collapse-toggle"
+              type="button"
+              aria-controls="setupContent"
+              aria-expanded="true"
+              title="Réduire la configuration"
+            ></button>
+          </div>
+          <div id="setupContent" class="collapsible-content">
+            <div class="setup-grid">
+              <article class="setup-step" id="setupGoogleStep">
+                <div class="setup-step-heading">
+                  <span class="setup-number">1</span>
+                  <div>
+                    <strong>Google</strong>
+                    <small id="setupGoogleStatus">chargement</small>
+                  </div>
+                </div>
+                <div class="setup-actions">
+                  <a id="setupGoogleConnectLink" class="setup-button" href="/auth/google/start">Connecter Google</a>
+                  <button id="copyGoogleGuideBtn" class="secondary-button">Copier les étapes</button>
+                </div>
+                <div id="googleOAuthDebug" class="oauth-debug"></div>
+                <button id="clearGoogleCredentialsBtn" class="secondary-button danger-soft" type="button" hidden>
+                  Changer OAuth Google
+                </button>
+                <label class="setup-file-drop" for="googleCredentialsFileInput">
+                  <span>Importer google_credentials.json</span>
+                  <small id="googleCredentialsHint">OAuth Desktop Google requis pour Gmail.</small>
+                  <input id="googleCredentialsFileInput" type="file" accept=".json,application/json" />
+                </label>
+              </article>
+              <article class="setup-step" id="setupSerpApiStep">
+                <div class="setup-step-heading">
+                  <span class="setup-number">2</span>
+                  <div>
+                    <strong>SerpApi</strong>
+                    <small id="setupSerpApiStatus">chargement</small>
+                  </div>
+                </div>
+                <div class="setup-actions">
+                  <a class="setup-button" href="https://serpapi.com/manage-api-key" target="_blank" rel="noreferrer">Ouvrir SerpApi</a>
+                  <button id="copySerpApiGuideBtn" class="secondary-button">Copier les étapes</button>
+                </div>
+                <div class="setup-key-row">
+                  <input id="serpApiSetupKeyInput" type="password" placeholder="Coller la clé SerpApi ici" autocomplete="off" />
+                  <button id="serpApiSetupSaveBtn">Tester et enregistrer</button>
+                </div>
+              </article>
+              <article class="setup-step" id="setupReadyStep">
+                <div class="setup-step-heading">
+                  <span class="setup-number">3</span>
+                  <div>
+                    <strong>Premier test</strong>
+                    <small id="setupReadyStatus">Connexion en attente</small>
+                  </div>
+                </div>
+                <button id="setupGoActionsBtn" class="setup-button">Aller à la recherche</button>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="metrics" id="metrics"></section>
+
+        <section class="workspace" id="actions">
+          <div class="panel actions-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Recherche</p>
+                <h3>Lancer une recherche</h3>
+              </div>
+              <div class="daily-target">
+                <span>Objectif sécurisé</span>
+                <strong id="dailyTargetLabel">10 / jour max</strong>
+                <input id="limitInput" type="hidden" value="10" />
+              </div>
+            </div>
+            <div class="launch-action">
+              <div class="launch-buttons">
+                <button data-action="complete_search" class="primary launch-button">Lancer une recherche</button>
+                <button data-action="generate_emails" class="primary launch-button">Créer les mails manquants</button>
+              </div>
+              <small id="launchQuotaHint">Cherche, enrichit, score et prépare les messages. Aucun envoi automatique.</small>
+              <small id="missingEmailsHint">Crée les emails des entreprises à candidater qui ont une adresse mais pas encore de message.</small>
+            </div>
+          </div>
+
+          <div class="panel job-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Journal</p>
+                <h3>Action en cours</h3>
+              </div>
+              <span id="jobBadge" class="badge neutral">prêt</span>
+            </div>
+            <pre id="jobLog">Aucune action lancée.</pre>
+          </div>
+        </section>
+
+        <section class="panel settings-panel" id="settings">
+          <div class="panel-heading settings-heading">
+            <div>
+              <p class="eyebrow">Pilotage</p>
+              <h3>Paramètres de recherche</h3>
+            </div>
+            <div class="panel-heading-actions">
+              <button id="saveSettingsBtn" class="primary-button">Sauvegarder</button>
+              <button
+                id="toggleSettingsPanelBtn"
+                class="icon-button collapse-toggle"
+                type="button"
+                aria-controls="settingsContent"
+                aria-expanded="true"
+                title="Réduire le pilotage"
+              ></button>
+            </div>
+          </div>
+          <div id="settingsContent" class="collapsible-content">
+            <div class="settings-grid search-settings-grid">
+              <label class="field span-4 textarea-compact">
+                <span>Régions</span>
+                <textarea id="param-search_regions" data-param="search_regions"></textarea>
+              </label>
+              <label class="field span-8 textarea-large">
+                <span>Ce que l'app doit chercher</span>
+                <textarea id="param-search_keywords" data-param="search_keywords"></textarea>
+              </label>
+              <label class="field span-4 textarea-compact">
+                <span>Ce qu'il faut éviter</span>
+                <textarea id="param-excluded_keywords" data-param="excluded_keywords"></textarea>
+              </label>
+              <label class="field span-8 textarea-medium">
+                <span>Qui cibler en priorité</span>
+                <textarea id="param-target_company_types" data-param="target_company_types"></textarea>
+              </label>
+              <label class="field span-5 textarea-medium">
+                <span>Ton email</span>
+                <textarea id="param-email_tone" data-param="email_tone"></textarea>
+              </label>
+              <label class="field span-7 textarea-large">
+                <span>Résumé profil</span>
+                <textarea id="param-user_profile_summary" data-param="user_profile_summary"></textarea>
+              </label>
+              <label class="field span-3">
+                <span>Nom complet</span>
+                <input id="param-user_full_name" data-param="user_full_name" placeholder="Prénom Nom" />
+              </label>
+              <label class="field span-3">
+                <span>Signature</span>
+                <input id="param-email_signature_name" data-param="email_signature_name" placeholder="Prénom Nom" />
+              </label>
+              <label class="field span-3">
+                <span>Téléphone</span>
+                <input id="param-user_phone" data-param="user_phone" />
+              </label>
+              <label class="field span-3">
+                <span>Email</span>
+                <input id="param-user_email" data-param="user_email" />
+              </label>
+              <label class="field span-3">
+                <span>Portfolio</span>
+                <input id="param-portfolio_url" data-param="portfolio_url" />
+              </label>
+              <label class="field span-3">
+                <span>LinkedIn</span>
+                <input id="param-linkedin_url" data-param="linkedin_url" />
+              </label>
+              <label class="field span-1 compact">
+                <span>Relance J+</span>
+                <input id="param-followup_after_days" type="number" min="1" data-param="followup_after_days" />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel prompts-panel" id="prompts">
+          <div class="panel-heading prompts-heading">
+            <div>
+              <p class="eyebrow">Personnalisation</p>
+              <h3>Instructions des emails</h3>
+            </div>
+            <div class="prompt-heading-actions">
+              <button id="savePromptsBtn" class="primary-button">Sauvegarder instructions</button>
+              <button
+                id="togglePromptsPanelBtn"
+                class="icon-button collapse-toggle"
+                type="button"
+                aria-controls="promptsContent"
+                aria-expanded="true"
+                title="Réduire la personnalisation"
+              ></button>
+            </div>
+          </div>
+          <div id="promptsContent" class="collapsible-content">
+            <div class="prompt-builder">
+              <div class="panel-heading compact-heading">
+                <div>
+                  <p class="eyebrow">Assistant IA</p>
+                  <h4>Assistant de session</h4>
+                </div>
+                <div class="prompt-builder-actions">
+                  <button id="fillPromptExampleBtn" class="secondary-button">Remplir un exemple</button>
+                  <button id="analyzeSessionBtn" class="secondary-button">Analyser / améliorer</button>
+                  <button id="applySessionBlueprintBtn" class="secondary-button" disabled>Appliquer au pilotage + messages</button>
+                  <button id="buildPromptsBtn" class="primary-button">Créer les instructions</button>
+                </div>
+              </div>
+              <div class="session-assistant-box">
+                <div class="session-chat-card">
+                  <div class="session-chat-header">
+                    <div>
+                      <strong>Discussion guidée</strong>
+                      <span id="sessionChatMode">Mode local gratuit</span>
+                    </div>
+                    <div class="session-chat-progress">
+                      <span id="sessionChatProgressLabel">0%</span>
+                      <div><i id="sessionChatProgressBar"></i></div>
+                    </div>
+                  </div>
+                  <div id="sessionChatMessages" class="session-chat-messages"></div>
+                  <div id="sessionChatWaiting" class="session-chat-waiting" hidden>
+                    <span class="session-chat-spinner" aria-hidden="true"></span>
+                    <span>IA en train de répondre...</span>
+                  </div>
+                  <div class="session-chat-input-row">
+                    <textarea
+                      id="sessionChatInput"
+                      placeholder="Réponds naturellement. Exemple : je veux créer une session, éviter certaines cibles, modifier le ton, supprimer une formulation..."
+                    ></textarea>
+                    <button id="sessionChatSendBtn" class="primary-button">Envoyer</button>
+                  </div>
+                  <div class="session-chat-actions">
+                    <button id="sessionChatStartBtn" class="secondary-button">Démarrer le cadrage</button>
+                    <button id="sessionChatResetBtn" class="secondary-button">Recommencer</button>
+                  </div>
+                  <label class="field wide one-shot-assistant">
+                    <span>Ou coller une description complète</span>
+                    <textarea
+                      id="sessionAssistantInput"
+                      placeholder="Décris tout d'un coup : qui est la personne, ce qu'elle veut obtenir, où chercher, qui cibler, qui éviter, preuves de crédibilité, style souhaité..."
+                    ></textarea>
+                    <small>Pratique si tu as déjà préparé le texte ailleurs.</small>
+                  </label>
+                </div>
+                <div id="sessionAssistantOutput" class="session-assistant-output">
+                  <strong>Démarre la discussion ou colle une description.</strong>
+                  <span>L'assistant proposera les questions manquantes, les lieux à chercher, les personnes/structures à viser, ce qu'il faut éviter et les instructions de messages.</span>
+                </div>
+              </div>
+              <div class="prompt-builder-intro">
+                <div>
+                  <strong>1. Décris ce que toi tu veux faire</strong>
+                  <span>Ton activité, ton objectif, les gens que tu veux contacter.</span>
+                </div>
+                <div>
+                  <strong>2. Ne résume pas une entreprise précise</strong>
+                  <span>EasyFind ajoutera chaque entreprise automatiquement au moment d'écrire.</span>
+                </div>
+                <div>
+                  <strong>3. Génère puis sauvegarde</strong>
+                  <span>Les instructions seront utilisées pour les prochains messages.</span>
+                </div>
+              </div>
+              <div class="settings-grid">
+                <label class="field compact">
+                  <span>Je veux faire quoi ?</span>
+                  <select id="prompt-use_case" data-prompt-builder="use_case">
+                    <option value="job_search">Recherche d'emploi</option>
+                    <option value="sales_prospecting">Démarchage commercial</option>
+                    <option value="find_clients">Trouver des clients</option>
+                    <option value="partnership">Partenariats</option>
+                    <option value="supplier">Fournisseurs / prestataires</option>
+                    <option value="custom">Autre</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Quel résultat je veux obtenir ?</span>
+                  <input data-prompt-builder="objective" placeholder="Ex: obtenir un échange court, décrocher une mission, proposer un rendez-vous..." />
+                  <small>Écris la réponse attendue, pas le nom d'une entreprise.</small>
+                </label>
+                <label class="field wide">
+                  <span>Qui je suis / ce que je propose</span>
+                  <textarea data-prompt-builder="profile" placeholder="Ex: profil, offre ou activité en quelques phrases concrètes : expérience, métier, service, objectif..."></textarea>
+                  <small>Décris la personne ou l'offre. C'est le coeur du message.</small>
+                </label>
+                <label class="field wide">
+                  <span>Qui je veux contacter</span>
+                  <textarea data-prompt-builder="targets" placeholder="Ex: types de structures, secteurs, zones géographiques, interlocuteurs ou clients à viser..."></textarea>
+                  <small>Types de structures, secteurs, régions, interlocuteurs.</small>
+                </label>
+                <label class="field">
+                  <span>Ce qui me rend crédible</span>
+                  <textarea data-prompt-builder="proof" placeholder="Ex: expérience, références, réalisations, résultats, diplôme, certification, site web, portfolio..."></textarea>
+                  <small>Optionnel, mais utile pour éviter un message générique.</small>
+                </label>
+                <label class="field">
+                  <span>Style du message</span>
+                  <textarea data-prompt-builder="tone" placeholder="Ex: humain, direct, concret, terrain, simple, pas corporate, pas vendeur agressif."></textarea>
+                  <small>Décris le ton, pas le contenu.</small>
+                </label>
+                <label class="field">
+                  <span>Ce que je ne veux surtout pas</span>
+                  <textarea data-prompt-builder="no_go" placeholder="Ex: phrases creuses, forcing, mensonge, promesses commerciales, flatterie, message trop long..."></textarea>
+                  <small>Les limites à respecter dans tous les messages.</small>
+                </label>
+                <label class="field">
+                  <span>Ce que le message doit demander à la fin</span>
+                  <input data-prompt-builder="call_to_action" placeholder="Ex: proposer un échange de 15 minutes, demander le bon contact, savoir si un besoin existe..." />
+                  <small>La petite demande finale, simple à répondre.</small>
+                </label>
+              </div>
+              <div id="promptBuilderQuestions" class="builder-questions"></div>
+            </div>
+            <div class="prompt-tabs" id="promptTabs"></div>
+            <div class="prompt-editor" id="promptEditor"></div>
+          </div>
+        </section>
+
+        <section class="table-panel" id="companies">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Suivi</p>
+              <h3>Entreprises</h3>
+            </div>
+            <div class="filters">
+              <input id="companySearch" type="search" placeholder="Rechercher une entreprise" />
+              <label class="filter-field">
+                <span>Statut</span>
+                <select id="companyStatusFilter">
+                  <option value="">Tous les statuts</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div id="companyDetail" class="detail-panel empty"></div>
+          <div id="companiesLoadMoreTop" class="load-more-row load-more-row-top" hidden>
+            <small id="companiesVisibleHintTop"></small>
+            <button id="showMoreCompaniesTopBtn" class="secondary-button" type="button">Afficher plus</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Entreprise</th>
+                  <th>Contact</th>
+                  <th>Score</th>
+                  <th>Statut</th>
+                  <th>Relance</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="companiesBody"></tbody>
+            </table>
+          </div>
+          <div id="companiesLoadMore" class="load-more-row" hidden>
+            <small id="companiesVisibleHint"></small>
+            <button id="showMoreCompaniesBtn" class="secondary-button" type="button">Afficher plus</button>
+          </div>
+        </section>
+
+        <section class="table-panel emails-panel" id="emails">
+          <div class="panel-heading emails-heading">
+            <div>
+              <p class="eyebrow">Emails</p>
+              <h3>Messages et réponses</h3>
+            </div>
+            <div class="panel-heading-actions">
+              <select id="emailStatusFilter">
+                <option value="">Tous les emails</option>
+              </select>
+              <button
+                id="toggleEmailsPanelBtn"
+                class="icon-button collapse-toggle"
+                type="button"
+                aria-controls="emailsContent"
+                aria-expanded="true"
+                title="Réduire les emails"
+              ></button>
+            </div>
+          </div>
+          <div id="emailsContent" class="collapsible-content">
+            <div id="emailDetail" class="detail-panel empty"></div>
+            <div id="emailsLoadMoreTop" class="load-more-row load-more-row-top" hidden>
+              <small id="emailsVisibleHintTop"></small>
+              <button id="showMoreEmailsTopBtn" class="secondary-button" type="button">Afficher plus</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Entreprise</th>
+                    <th>Destinataire</th>
+                    <th>Statut</th>
+                    <th>Réponse</th>
+                    <th>Créé le</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="emailsBody"></tbody>
+              </table>
+            </div>
+            <div id="emailsLoadMore" class="load-more-row" hidden>
+              <small id="emailsVisibleHint"></small>
+              <button id="showMoreEmailsBtn" class="secondary-button" type="button">Afficher plus</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="busyOverlay" class="busy-overlay" hidden>
+      <div class="busy-card">
+        <span class="busy-spinner" aria-hidden="true"></span>
+        <div>
+          <strong id="busyTitle">Action en cours</strong>
+          <small id="busyDetail">EasyFind travaille...</small>
+        </div>
+      </div>
+    </div>
+
+    <script src="/static/app.js"></script>
   </body>
 </html>
