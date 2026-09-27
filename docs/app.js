@@ -2337,42 +2337,62 @@ function bindEvents() {
     resetCompanyVisibleLimit();
     renderCompanies();
   });
-  $("companyStatusFilter").addEventListener("change", () => {
+  const companyStatusFilter = $("companyStatusFilter");
+  if (companyStatusFilter) companyStatusFilter.addEventListener("change", () => {
     clearSelectedCompany();
     resetCompanyVisibleLimit();
     renderCompanies();
   });
-  $("showMoreCompaniesTopBtn").addEventListener("click", showMoreCompanies);
-  $("showMoreCompaniesBtn").addEventListener("click", showMoreCompanies);
-  $("emailStatusFilter").addEventListener("change", () => {
+  const showMoreCompaniesTopBtn = $("showMoreCompaniesTopBtn");
+  if (showMoreCompaniesTopBtn) showMoreCompaniesTopBtn.addEventListener("click", showMoreCompanies);
+  const showMoreCompaniesBtn = $("showMoreCompaniesBtn");
+  if (showMoreCompaniesBtn) showMoreCompaniesBtn.addEventListener("click", showMoreCompanies);
+  const emailStatusFilter = $("emailStatusFilter");
+  if (emailStatusFilter) emailStatusFilter.addEventListener("change", () => {
     resetEmailVisibleLimit();
     renderEmails();
   });
-  $("showMoreEmailsTopBtn").addEventListener("click", showMoreEmails);
-  $("showMoreEmailsBtn").addEventListener("click", showMoreEmails);
-  $("toggleEmailsPanelBtn").addEventListener("click", toggleEmailsPanel);
-  $("saveSettingsBtn").addEventListener("click", async () => {
+  const showMoreEmailsTopBtn = $("showMoreEmailsTopBtn");
+  if (showMoreEmailsTopBtn) showMoreEmailsTopBtn.addEventListener("click", showMoreEmails);
+  const showMoreEmailsBtn = $("showMoreEmailsBtn");
+  if (showMoreEmailsBtn) showMoreEmailsBtn.addEventListener("click", showMoreEmails);
+  const toggleEmailsPanelBtn = $("toggleEmailsPanelBtn");
+  if (toggleEmailsPanelBtn) toggleEmailsPanelBtn.addEventListener("click", toggleEmailsPanel);
+  const saveSettingsBtn = $("saveSettingsBtn");
+  if (saveSettingsBtn) saveSettingsBtn.addEventListener("click", async () => {
     parameters = collectParameters();
     await runAction("save_parameters", { parameters });
   });
-  $("toggleSettingsPanelBtn").addEventListener("click", toggleSettingsPanel);
-  $("savePromptsBtn").addEventListener("click", async () => {
+  const toggleSettingsPanelBtn = $("toggleSettingsPanelBtn");
+  if (toggleSettingsPanelBtn) toggleSettingsPanelBtn.addEventListener("click", toggleSettingsPanel);
+  const savePromptsBtn = $("savePromptsBtn");
+  if (savePromptsBtn) savePromptsBtn.addEventListener("click", async () => {
     await runAction("save_prompts", { prompts: collectPrompts() });
     await fetchPrompts();
   });
-  $("togglePromptsPanelBtn").addEventListener("click", togglePromptsPanel);
-  $("prompt-use_case").addEventListener("change", () => {
-    $("prompt-use_case").dataset.userChanged = "1";
+  const togglePromptsPanelBtn = $("togglePromptsPanelBtn");
+  if (togglePromptsPanelBtn) togglePromptsPanelBtn.addEventListener("click", togglePromptsPanel);
+  const promptUseCase = $("prompt-use_case");
+  if (promptUseCase) promptUseCase.addEventListener("change", () => {
+    promptUseCase.dataset.userChanged = "1";
     saveSessionChatState();
   });
-  $("fillPromptExampleBtn").addEventListener("click", fillPromptBuilderExample);
-  $("analyzeSessionBtn").addEventListener("click", analyzeSessionAssistant);
-  $("applySessionBlueprintBtn").addEventListener("click", applySessionAssistantBlueprint);
-  $("buildPromptsBtn").addEventListener("click", buildPromptPackFromForm);
-  $("sessionChatStartBtn").addEventListener("click", startSessionChat);
-  $("sessionChatSendBtn").addEventListener("click", sendSessionChatMessage);
-  $("sessionChatResetBtn").addEventListener("click", confirmResetSessionChat);
-  $("sessionChatInput").addEventListener("keydown", (event) => {
+  const fillPromptExampleBtn = $("fillPromptExampleBtn");
+  if (fillPromptExampleBtn) fillPromptExampleBtn.addEventListener("click", fillPromptBuilderExample);
+  const analyzeSessionBtn = $("analyzeSessionBtn");
+  if (analyzeSessionBtn) analyzeSessionBtn.addEventListener("click", analyzeSessionAssistant);
+  const applySessionBlueprintBtn = $("applySessionBlueprintBtn");
+  if (applySessionBlueprintBtn) applySessionBlueprintBtn.addEventListener("click", applySessionAssistantBlueprint);
+  const buildPromptsBtn = $("buildPromptsBtn");
+  if (buildPromptsBtn) buildPromptsBtn.addEventListener("click", buildPromptPackFromForm);
+  const sessionChatStartBtn = $("sessionChatStartBtn");
+  if (sessionChatStartBtn) sessionChatStartBtn.addEventListener("click", startSessionChat);
+  const sessionChatSendBtn = $("sessionChatSendBtn");
+  if (sessionChatSendBtn) sessionChatSendBtn.addEventListener("click", sendSessionChatMessage);
+  const sessionChatResetBtn = $("sessionChatResetBtn");
+  if (sessionChatResetBtn) sessionChatResetBtn.addEventListener("click", confirmResetSessionChat);
+  const sessionChatInput = $("sessionChatInput");
+  if (sessionChatInput) sessionChatInput.addEventListener("keydown", (event) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
       sendSessionChatMessage();
