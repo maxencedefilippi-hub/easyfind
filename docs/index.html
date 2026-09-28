@@ -279,33 +279,49 @@
   </div>
 
   <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+      import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const supabaseUrl = "https://nkhcdkvepcjyxpwiattc.supabase.co";
-    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpvbmNlL2tXqgg";
-    const supa = createClient(supabaseUrl, supabaseAnonKey);
+      const supabaseUrl = "https://nkhcdkvepcjyxpwiattc.supabase.co";
+      const supabaseAnonKey = "eyJhbG...Xqgg";
+      const supa = createClient(supabaseUrl, supabaseAnonKey);
 
-    let currentUser = null;
+      let currentUser = null;
+      let authInitialized = false;
 
-    async function checkAuth() {
-      const { data, error } = await supa.auth.getSession();
-      if (error) {
-        console.error("Auth error:", error);
-        showLogin();
-        return;
+      async function waitForAuthInit() {
+        // Wait for Supabase to initialize auth from URL hash
+        await new Promise(resolve => {
+          const unsubscribe = supa.auth.onAuthStateChange((event, session) => {
+            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+              unsubscribe();
+              resolve();
+            }
+          });
+          // Fallback timeout
+          setTimeout(() => { unsubscribe(); resolve(); }, 3000);
+        });
       }
-      currentUser = data.session ? data.user : null;
-      if (currentUser) {
-        document.body.innerHTML = "";
-        const script = document.createElement("script");
-        script.type = "module";
-        script.src = "./app.js?v=21";
-        script.defer = true;
-        document.body.appendChild(script);
-      } else {
-        showLogin();
+
+      async function checkAuth() {
+        await waitForAuthInit();
+        const { data, error } = await supa.auth.getSession();
+        if (error) {
+          console.error("Auth error:", error);
+          showLogin();
+          return;
+        }
+        currentUser = data.session ? data.user : null;
+        if (currentUser) {
+          document.body.innerHTML = "";
+          const script = document.createElement("script");
+          script.type = "module";
+          script.src = "./app.js?v=22";
+          script.defer = true;
+          document.body.appendChild(script);
+        } else {
+          showLogin();
+        }
       }
-    }
 
     function showLogin() {
       // Already rendered in HTML, just init forms
