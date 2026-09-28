@@ -291,14 +291,14 @@
       async function waitForAuthInit() {
         // Wait for Supabase to initialize auth from URL hash
         await new Promise(resolve => {
-          const unsubscribe = supa.auth.onAuthStateChange((event, session) => {
+          const { data: { subscription } } = supa.auth.onAuthStateChange((event, session) => {
             if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-              unsubscribe();
+              subscription.unsubscribe();
               resolve();
             }
           });
           // Fallback timeout
-          setTimeout(() => { unsubscribe(); resolve(); }, 3000);
+          setTimeout(() => { subscription.unsubscribe(); resolve(); }, 3000);
         });
       }
 
@@ -315,7 +315,7 @@
           document.body.innerHTML = "";
           const script = document.createElement("script");
           script.type = "module";
-          script.src = "./app.js?v=22";
+          script.src = "./app.js?v=23";
           script.defer = true;
           document.body.appendChild(script);
         } else {
