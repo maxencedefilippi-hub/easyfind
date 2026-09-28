@@ -303,25 +303,29 @@
       }
 
       async function checkAuth() {
-        await waitForAuthInit();
-        const { data, error } = await supa.auth.getSession();
-        if (error) {
-          console.error("Auth error:", error);
-          showLogin();
-          return;
-        }
-        currentUser = data.session ? data.user : null;
-        if (currentUser) {
-          document.body.innerHTML = "";
-          const script = document.createElement("script");
-          script.type = "module";
-          script.src = "./app.js?v=23";
-          script.defer = true;
-          document.body.appendChild(script);
-        } else {
-          showLogin();
-        }
-      }
+            await waitForAuthInit();
+            console.log('[EasyFind] checkAuth - URL hash:', window.location.hash);
+            const { data, error } = await supa.auth.getSession();
+            console.log('[EasyFind] getSession result:', { session: data.session ? 'YES' : 'NO', user: data.session?.user?.email, error });
+            if (error) {
+              console.error("Auth error:", error);
+              showLogin();
+              return;
+            }
+            currentUser = data.session ? data.user : null;
+            if (currentUser) {
+              console.log('[EasyFind] User connected, loading dashboard...');
+              document.body.innerHTML = "";
+              const script = document.createElement("script");
+              script.type = "module";
+              script.src = "./app.js?v=24";
+              script.defer = true;
+              document.body.appendChild(script);
+            } else {
+              console.log('[EasyFind] No session, showing login');
+              showLogin();
+            }
+          }
 
     function showLogin() {
       // Already rendered in HTML, just init forms
