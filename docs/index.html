@@ -188,6 +188,9 @@
             <label>Mot de passe</label>
             <input type="password" id="signin-password" required autocomplete="current-password" />
           </div>
+          <p style="margin: 0 0 1rem; text-align: right;">
+            <a href="#" id="forgot-password" style="font-size: 0.8rem; color: var(--primary);">Mot de passe oublié ?</a>
+          </p>
           <button type="submit" class="btn-signin">Se connecter</button>
         </form>
         <div class="divider" role="separator">Ou continuer avec</div>
@@ -224,7 +227,7 @@
         document.body.innerHTML = "";
         const script = document.createElement("script");
         script.type = "module";
-        script.src = "./app.js?v=17";
+        script.src = "./app.js?v=18";
         script.defer = true;
         document.body.appendChild(script);
       } else {
@@ -298,6 +301,9 @@
                     <label>Mot de passe</label>
                     <input type="password" id="signin-password" required autocomplete="current-password" />
                   </div>
+                  <p style="margin: 0 0 1rem; text-align: right;">
+                    <a href="#" id="forgot-password" style="font-size: 0.8rem; color: var(--primary);">Mot de passe oublié ?</a>
+                  </p>
                   <button type="submit" class="btn-signin">Se connecter</button>
                 </form>
                 <div class="divider" role="separator">Ou continuer avec</div>
@@ -327,6 +333,18 @@
         e.preventDefault();
         document.getElementById("signup-form").style.display = "none";
         document.getElementById("signin-form").style.display = "block";
+      });
+
+      // Mot de passe oublié
+      document.getElementById("forgot-password").addEventListener("click", async e => {
+        e.preventDefault();
+        const email = document.getElementById("signin-email").value || prompt("Entrez votre email :");
+        if (!email) return;
+        const { error } = await supa.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + window.location.pathname
+        });
+        if (error) alert(error.message);
+        else alert("Email de réinitialisation envoyé ! Vérifiez votre boîte mail.");
       });
 
       // Soumettre signup
