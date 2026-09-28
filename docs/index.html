@@ -289,43 +289,55 @@
       let authInitialized = false;
 
       async function waitForAuthInit() {
-        // Wait for Supabase to initialize auth from URL hash
+        // Si l'URL contient un hash OAuth (retour de Google), il faut attendre
+        // que Supabase l'ait parsé en session réelle (event avec session non nulle).
+        const hasOAuthHash = window.location.hash.includes('access_token=');
         await new Promise(resolve => {
+          let settled = false;
+          const done = () => { if (!settled) { settled = true; subscription.unsubscribe(); resolve(); } };
           const { data: { subscription } } = supa.auth.onAuthStateChange((event, session) => {
-            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-              subscription.unsubscribe();
-              resolve();
+            if (settled) return;
+            if (hasOAuthHash) {
+              // Attendre une session réelle (parsée depuis le hash)
+              if (session) { console.log('[EasyFind] Session détectée via event:', event); done(); }
+            } else {
+              // Pas de hash : INITIAL_SESSION suffit
+              if (event === 'INITIAL_SESSION') done();
             }
           });
-          // Fallback timeout
-          setTimeout(() => { subscription.unsubscribe(); resolve(); }, 3000);
+          // Fallback timeout (plus long si hash OAuth présent)
+          setTimeout(done, hasOAuthHash ? 8000 : 3000);
         });
       }
 
       async function checkAuth() {
-            await waitForAuthInit();
-            console.log('[EasyFind] checkAuth - URL hash:', window.location.hash);
-            const { data, error } = await supa.auth.getSession();
-            console.log('[EasyFind] getSession result:', { session: data.session ? 'YES' : 'NO', user: data.session?.user?.email, error });
-            if (error) {
-              console.error("Auth error:", error);
-              showLogin();
-              return;
-            }
-            currentUser = data.session ? data.user : null;
-            if (currentUser) {
-              console.log('[EasyFind] User connected, loading dashboard...');
-              document.body.innerHTML = "";
-              const script = document.createElement("script");
-              script.type = "module";
-              script.src = "./app.js?v=24";
-              script.defer = true;
-              document.body.appendChild(script);
-            } else {
-              console.log('[EasyFind] No session, showing login');
-              showLogin();
-            }
-          }
+        await waitForAuthInit();
+        console.log('[EasyFind] checkAuth - URL hash:', window.location.hash);
+        const { data, error } = await supa.auth.getSession();
+        console.log('[EasyFind] getSession result:', { session: data.session ? 'YES' : 'NO', user: data.session?.user?.email, error });
+        // Nettoyer le hash après parsing pour éviter les re-parages
+        if (data.session && window.location.hash.includes('access_token=')) {
+          history.replaceState(null, '', window.location.pathname);
+        }
+        if (error) {
+          console.error("Auth error:", error);
+          showLogin();
+          return;
+        }
+        currentUser = data.session ? data.session.user : null;
+        if (currentUser) {
+          console.log('[EasyFind] User connected, loading dashboard...');
+          document.body.innerHTML = "";
+          const script = document.createElement("script");
+          script.type = "module";
+          script.src = "./app.js?v=25";
+          script.defer = true;
+          document.body.appendChild(script);
+        } else {
+          console.log('[EasyFind] No session, showing login');
+          showLogin();
+        }
+      }
 
     function showLogin() {
       // Already rendered in HTML, just init forms
