@@ -282,7 +282,7 @@
       import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
       const supabaseUrl = "https://nkhcdkvepcjyxpwiattc.supabase.co";
-      const supabaseAnonKey = "eyJhbG...Xqgg";
+      const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raGNka3ZlcGNqeXhwd2lhdHRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTc1OTYsImV4cCI6MjEwNTY3MzU5Nn0.uKPoW5qg5x7U777nGdjVfCIPyu-D1gG61Z_9iCcXqgg";
       const supa = createClient(supabaseUrl, supabaseAnonKey);
 
       let currentUser = null;
@@ -346,7 +346,7 @@
           document.body.innerHTML = "";
           const script = document.createElement("script");
           script.type = "module";
-          script.src = "./app.js?v=25";
+          script.src = "./app.js?v=26";
           script.defer = true;
           document.body.appendChild(script);
         } else {
