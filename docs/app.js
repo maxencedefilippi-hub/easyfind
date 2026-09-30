@@ -792,19 +792,23 @@ function renderSystem() {
   renderPromptsPanelCollapse();
   renderEmailsPanelCollapse();
   const autopilot = state.autopilot;
-  $("autopilotStatus").textContent = autopilot.installed
+  const autopilotStatus = $("autopilotStatus");
+  if (autopilotStatus) autopilotStatus.textContent = autopilot.installed
     ? autopilot.loaded
       ? "actif"
       : "installé"
     : "désactivé";
   const dailyLimit = effectiveDailyLimit();
-  $("draftLimit").textContent = `${state.rate_limit.used_today} / ${dailyLimit}`;
+  const draftLimitEl = $("draftLimit");
+  if (draftLimitEl) draftLimitEl.textContent = `${state.rate_limit.used_today} / ${dailyLimit}`;
   const dailyTargetLabel = $("dailyTargetLabel");
   if (dailyTargetLabel) dailyTargetLabel.textContent = `${dailyLimit} / jour max`;
-  $("jobStatus").textContent = state.job.title || "aucune";
-  $("jobBadge").textContent = state.job.status;
-  $("jobBadge").className = `badge ${state.job.status}`;
-  $("jobLog").textContent = state.job.log || "Aucune action lancée.";
+  const jobStatusEl = $("jobStatus");
+  if (jobStatusEl) jobStatusEl.textContent = state.job.title || "aucune";
+  const jobBadge = $("jobBadge");
+  if (jobBadge) { jobBadge.textContent = state.job.status; jobBadge.className = `badge ${state.job.status}`; }
+  const jobLog = $("jobLog");
+  if (jobLog) jobLog.textContent = state.job.log || "Aucune action lancée.";
   renderBusyOverlay();
 
   document.querySelectorAll("[data-action]").forEach((button) => {
@@ -834,8 +838,10 @@ function renderConnections() {
   if (dot) {
     dot.className = `connection-dot ${connected ? "connected" : "disconnected"}`;
   }
-  $("googleConnectionStatus").textContent = connected ? "Google connecté" : "Google non connecté";
-  $("googleConnectionDetail").textContent = googleStatusDetail(google);
+  const googleConnectionStatus = $("googleConnectionStatus");
+  if (googleConnectionStatus) googleConnectionStatus.textContent = connected ? "Google connecté" : "Google non connecté";
+  const googleConnectionDetail = $("googleConnectionDetail");
+  if (googleConnectionDetail) googleConnectionDetail.textContent = googleStatusDetail(google);
   const googleConnectLink = $("googleConnectLink");
   googleConnectLink.textContent = connected
     ? "Reconnecter Google"
@@ -1120,6 +1126,7 @@ function renderSessions() {
   const session = state.session || {};
   const sessions = session.sessions || [];
   const select = $("sessionSelect");
+  if (!select) return;
   const currentValue = select.value || session.active_id || "";
   select.innerHTML = sessions
     .map(
@@ -1159,6 +1166,7 @@ function renderSessions() {
 }
 
 function renderMetrics() {
+  if (!$("metrics")) return;
   const copy = currentCopy();
   const replyReviewCount = companiesNeedingReplyReview().length;
   const qualificationCount = companiesNeedingQualification().length;
@@ -1189,6 +1197,7 @@ function renderMetrics() {
 function renderFilters() {
   const copy = currentCopy();
   const companyFilter = $("companyStatusFilter");
+  if (!companyFilter) return;
   const selectedCompanyStatus = companyFilter.value;
   const companyStatusCounts = companyStatusFilterCounts();
   const replyReviewCount = companiesNeedingReplyReview().length;
@@ -1209,6 +1218,7 @@ function renderFilters() {
       .join("")}
   `;
   const emailFilter = $("emailStatusFilter");
+  if (!emailFilter) return;
   const selectedEmailStatus = emailFilter.value;
   emailFilter.innerHTML = `
     <option value="">${escapeHtml(copy.allMessagesFilter)}</option>
@@ -2164,7 +2174,79 @@ function renderCompanyDetail() {
       ${regenerateFormButton}
       ${markFormSentButton}
     </div>
+    ${companyEmailBlock(company)}
   `;
+}
+
+function companyEmailBlock(company) {
+  const copy = currentCopy();
+  const email = findEmail(company.latest_email_id);
+  const emailId = email ? email.id : (company.latest_email_id || "");
+  if (!email) {
+    return `
+    <div class="detail-email-block" style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--border, #cbd5e1); border-radius: 8px; background: rgba(148,163,184,0.08);">
+      <p class="eyebrow">Message</p>
+      <small>${escapeHtml(copy.noMessageYet || "Aucun message généré pour cette entreprise pour le moment.")}</small>
+    </div>`;
+  }
+  selectedEmailId = emailId;
+  const canSendFromSite =
+    ["generated", "draft_created"].includes(email.status) &&
+    !isFormRecipient(email.email_to);
+  const sendNowButton = canSendFromSite
+    ? '<button id="sendCompanyEmailBtn" class="danger-button">Envoyer maintenant</button>'
+    : "";
+  const regenerateBtn = canRegenerateEmailMessage(email)
+    ? '<button id="regenerateSelectedEmailBtn">Régénérer message</button>'
+    : "";
+  const badAddrBtn = canMarkBadEmail(email)
+    ? '<button id="markBadEmailFromEmailBtn" class="danger-button">Mauvaise adresse</button>'
+    : "";
+  return `
+  <div class="detail-email-block" style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--border, #cbd5e1); border-radius: 8px; background: rgba(148,163,184,0.08);">
+    <div class="detail-heading">
+      <div>
+        <p class="eyebrow">Message de contact</p>
+        <h4>${escapeHtml(email.subject || "(sans objet)")}</h4>
+        <small>${formatRecipient(email.email_to)}</small>
+      </div>
+      ${statusPill(email.status)}
+    </div>
+    <div class="detail-grid">
+      <label class="field wide">
+        <span>Destinataire</span>
+        <input id="emailToInput" value="${attr(email.email_to || "")}" />
+      </label>
+      <label class="field wide">
+        <span>Objet</span>
+        <input id="emailSubjectInput" value="${attr(email.subject || "")}" />
+      </label>
+      <label class="field wide">
+        <span>Corps du message</span>
+        <textarea id="emailBodyInput" class="message-body" rows="8">${escapeHtml(email.body || "")}</textarea>
+      </label>
+      <label class="field wide">
+        <span>Notes personnalisation</span>
+        <textarea id="emailNotesInput" rows="2">${escapeHtml(email.personalization_notes || "")}</textarea>
+      </label>
+      <label class="field compact">
+        <span>Statut du message</span>
+        <select id="emailStatusInput">${emailStatusOptions(email.status)}</select>
+      </label>
+      <label class="field compact">
+        <span>Réponse</span>
+        <select id="emailReplyStatusInput">${replyStatusOptions(email.reply_status || "")}</select>
+      </label>
+    </div>
+    <div class="button-row">
+      <button id="saveEmailBtn" class="primary-button">Sauvegarder message</button>
+      <button id="copyEmailBodyBtn">Copier corps</button>
+      <button id="markEmailSentBtn">Marquer envoyé</button>
+      ${sendNowButton}
+      ${regenerateBtn}
+      ${badAddrBtn}
+    </div>
+  </div>`;
 }
 
 function canGenerateFormMessage(company) {
@@ -2180,6 +2262,7 @@ function canMarkFormSent(company) {
 }
 
 function renderEmails() {
+  if (!$("emailsBody")) return; // section emails fusionnée dans la fiche entreprise
   const copy = currentCopy();
   const filteredEmails = visibleEmailCandidates();
   const shownEmails = filteredEmails.slice(0, emailsVisibleLimit);
@@ -2192,7 +2275,8 @@ function renderEmails() {
 }
 
 function visibleEmailCandidates() {
-  const statusFilter = $("emailStatusFilter").value;
+  const filterEl = $("emailStatusFilter");
+  const statusFilter = filterEl ? filterEl.value : "";
   return state.emails.filter((email) => !statusFilter || email.status === statusFilter);
 }
 
@@ -2232,6 +2316,7 @@ function emailRow(email) {
 }
 
 function renderEmailDetail() {
+  if (!$("emailDetail")) return; // panneau email fusionné dans la fiche entreprise
   const copy = currentCopy();
   const email = findEmail(selectedEmailId);
   if (!email) {
@@ -2361,6 +2446,10 @@ async function copyText(value) {
   }
 }
 
+function safeBind(id, event, handler) {
+  const el = $(id);
+  if (el) el.addEventListener(event, handler);
+}
 function bindEvents() {
   document.addEventListener("focusin", noteUserInteraction);
   document.addEventListener("pointerdown", noteUserInteraction);
@@ -2374,55 +2463,55 @@ function bindEvents() {
   if (setupGoActionsBtn) setupGoActionsBtn.addEventListener("click", () => {
     document.querySelector("#actions").scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  $("copyGoogleGuideBtn").addEventListener("click", () => copyText(googleOAuthMiniGuide()));
-  $("copySerpApiGuideBtn").addEventListener("click", () => copyText(serpApiMiniGuide()));
-  $("googleCredentialsFileInput").addEventListener("change", saveGoogleCredentialsFromFile);
-  $("clearGoogleCredentialsBtn").addEventListener("click", clearGoogleCredentials);
-  $("sessionSelect").addEventListener("change", switchSession);
-  $("createSessionBtn").addEventListener("click", createSessionFromForm);
-  $("serpApiSaveBtn").addEventListener("click", saveSerpApiKeyFromForm);
-  $("serpApiSetupSaveBtn").addEventListener("click", saveSerpApiKeyFromForm);
-  $("companySearch").addEventListener("input", () => {
+  safeBind("copyGoogleGuideBtn", "click", () => copyText(googleOAuthMiniGuide()));
+  safeBind("copySerpApiGuideBtn", "click", () => copyText(serpApiMiniGuide()));
+  safeBind("googleCredentialsFileInput", "change", saveGoogleCredentialsFromFile);
+  safeBind("clearGoogleCredentialsBtn", "click", clearGoogleCredentials);
+  safeBind("sessionSelect", "change", switchSession);
+  safeBind("createSessionBtn", "click", createSessionFromForm);
+  safeBind("serpApiSaveBtn", "click", saveSerpApiKeyFromForm);
+  safeBind("serpApiSetupSaveBtn", "click", saveSerpApiKeyFromForm);
+  safeBind("companySearch", "input", () => {
     clearSelectedCompany();
     resetCompanyVisibleLimit();
     renderCompanies();
   });
-  $("companyStatusFilter").addEventListener("change", () => {
+  safeBind("companyStatusFilter", "change", () => {
     clearSelectedCompany();
     resetCompanyVisibleLimit();
     renderCompanies();
   });
-  $("showMoreCompaniesTopBtn").addEventListener("click", showMoreCompanies);
-  $("showMoreCompaniesBtn").addEventListener("click", showMoreCompanies);
-  $("emailStatusFilter").addEventListener("change", () => {
+  safeBind("showMoreCompaniesTopBtn", "click", showMoreCompanies);
+  safeBind("showMoreCompaniesBtn", "click", showMoreCompanies);
+  safeBind("emailStatusFilter", "change", () => {
     resetEmailVisibleLimit();
     renderEmails();
   });
-  $("showMoreEmailsTopBtn").addEventListener("click", showMoreEmails);
-  $("showMoreEmailsBtn").addEventListener("click", showMoreEmails);
-  $("toggleEmailsPanelBtn").addEventListener("click", toggleEmailsPanel);
-  $("saveSettingsBtn").addEventListener("click", async () => {
+  safeBind("showMoreEmailsTopBtn", "click", showMoreEmails);
+  safeBind("showMoreEmailsBtn", "click", showMoreEmails);
+  safeBind("toggleEmailsPanelBtn", "click", toggleEmailsPanel);
+  safeBind("saveSettingsBtn", "click", async () => {
     parameters = collectParameters();
     await runAction("save_parameters", { parameters });
   });
-  $("toggleSettingsPanelBtn").addEventListener("click", toggleSettingsPanel);
-  $("savePromptsBtn").addEventListener("click", async () => {
+  safeBind("toggleSettingsPanelBtn", "click", toggleSettingsPanel);
+  safeBind("savePromptsBtn", "click", async () => {
     await runAction("save_prompts", { prompts: collectPrompts() });
     await fetchPrompts();
   });
-  $("togglePromptsPanelBtn").addEventListener("click", togglePromptsPanel);
-  $("prompt-use_case").addEventListener("change", () => {
+  safeBind("togglePromptsPanelBtn", "click", togglePromptsPanel);
+  safeBind("prompt-use_case", "change", () => {
     $("prompt-use_case").dataset.userChanged = "1";
     saveSessionChatState();
   });
-  $("fillPromptExampleBtn").addEventListener("click", fillPromptBuilderExample);
-  $("analyzeSessionBtn").addEventListener("click", analyzeSessionAssistant);
-  $("applySessionBlueprintBtn").addEventListener("click", applySessionAssistantBlueprint);
-  $("buildPromptsBtn").addEventListener("click", buildPromptPackFromForm);
-  $("sessionChatStartBtn").addEventListener("click", startSessionChat);
-  $("sessionChatSendBtn").addEventListener("click", sendSessionChatMessage);
-  $("sessionChatResetBtn").addEventListener("click", confirmResetSessionChat);
-  $("sessionChatInput").addEventListener("keydown", (event) => {
+  safeBind("fillPromptExampleBtn", "click", fillPromptBuilderExample);
+  safeBind("analyzeSessionBtn", "click", analyzeSessionAssistant);
+  safeBind("applySessionBlueprintBtn", "click", applySessionAssistantBlueprint);
+  safeBind("buildPromptsBtn", "click", buildPromptPackFromForm);
+  safeBind("sessionChatStartBtn", "click", startSessionChat);
+  safeBind("sessionChatSendBtn", "click", sendSessionChatMessage);
+  safeBind("sessionChatResetBtn", "click", confirmResetSessionChat);
+  safeBind("sessionChatInput", "keydown", (event) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
       sendSessionChatMessage();
@@ -2941,14 +3030,10 @@ function openLatestCompanyMessage(companyId) {
   }
   selectedCompanyId = companyId;
   selectedEmailId = company.latest_email_id;
-  emailsCollapsed = false;
-  localStorage.setItem("dreamsHunterEmailsCollapsed", "0");
   renderCompanies();
   renderCompanyDetail();
-  renderEmailsPanelCollapse();
-  renderEmails();
-  renderEmailDetail();
-  document.querySelector("#emails").scrollIntoView({ behavior: "smooth", block: "start" });
+  const block = document.querySelector(".detail-email-block");
+  if (block) block.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function sendGeneratedEmailForCompany(companyId) {
@@ -2971,14 +3056,15 @@ function sendGeneratedEmailForCompany(companyId) {
 }
 
 function selectedEmailPayload() {
+  const email = findEmail(selectedEmailId) || {};
   return {
     email_id: selectedEmailId,
-    email_to: $("emailToInput").value.trim(),
-    subject: $("emailSubjectInput").value.trim(),
-    body: $("emailBodyInput").value,
-    personalization_notes: $("emailNotesInput").value.trim(),
-    status: $("emailStatusInput").value,
-    reply_status: $("emailReplyStatusInput").value,
+    email_to: ($("emailToInput")?.value ?? email.email_to ?? "").trim(),
+    subject: ($("emailSubjectInput")?.value ?? email.subject ?? "").trim(),
+    body: $("emailBodyInput")?.value ?? email.body ?? "",
+    personalization_notes: ($("emailNotesInput")?.value ?? email.personalization_notes ?? "").trim(),
+    status: $("emailStatusInput")?.value ?? email.status ?? "",
+    reply_status: $("emailReplyStatusInput")?.value ?? email.reply_status ?? "",
   };
 }
 
