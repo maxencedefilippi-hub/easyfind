@@ -1,3 +1,47 @@
+// ===== EasyFind Edge Functions shim (injected for production) =====
+// Intercepte fetch("/api/*") -> Edge Functions Supabase avec JWT utilisateur.
+// La session est relue depuis localStorage (clé sb-...-auth-token).
+(function() {
+  const SUPABASE_URL = "https://nkhcdkvepcjyxpwiattc.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raGNka3ZlcGNqeXhwd2lhdHRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTc1OTYsImV4cCI6MjEwNTY3MzU5Nn0.uKPoW5qg5x7U777nGdjVfCIPyu-D1gG61Z_9iCcXqgg";
+  const nativeFetch = window.fetch.bind(window);
+
+  function getAccessToken() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+          const raw = localStorage.getItem(key);
+          const parsed = JSON.parse(raw);
+          // Structure: { access_token, refresh_token, ... } ou { currentSession: {...} }
+          const sess = parsed.currentSession || parsed;
+          if (sess && sess.access_token) return sess.access_token;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function edgeUrl(path) {
+    // "/api/state" -> SUPABASE_URL/functions/v1/api-state
+    const name = path.replace(/^\/api\//, "").replace(/\//g, "-");
+    return SUPABASE_URL + "/functions/v1/" + name;
+  }
+
+  window.fetch = async function(input, init) {
+    let url = (typeof input === "string") ? input : (input && input.url) || "";
+    if (url.startsWith("/api/")) {
+      const token = getAccessToken();
+      const headers = new Headers((init && init.headers) || {});
+      headers.set("Authorization", "Bearer " + (token || SUPABASE_ANON_KEY));
+      headers.set("apikey", SUPABASE_ANON_KEY);
+      return nativeFetch(edgeUrl(url), { ...init, headers });
+    }
+    return nativeFetch(input, init);
+  };
+})();
+// ===== fin shim =====
+
 const companyStatuses = [
   "new",
   "enriched",

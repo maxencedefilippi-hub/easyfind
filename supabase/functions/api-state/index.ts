@@ -13,21 +13,78 @@ Deno.serve(async (req) => {
 
     const admin = getAdminClient();
 
-    // Fetch all data for this user
-    const [companies, emails, sessions, settings] = await Promise.all([
+    const [companiesRes, emailsRes, sessionsRes, settingsRes, jobLogRes] = await Promise.all([
       admin.from("companies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       admin.from("emails").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       admin.from("sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      admin.from("settings").select("*").eq("user_id", user.id).single(),
+      admin.from("settings").select("*").eq("user_id", user.id).maybeSingle(),
+      admin.from("job_log").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1),
     ]);
 
-    return jsonResponse({
-      companies: companies.data || [],
-      emails: emails.data || [],
-      sessions: sessions.data || [],
-      settings: settings.data || null,
+    const companies = companiesRes.data || [];
+    const emails = emailsRes.data || [];
+    const dbSessions = sessionsRes.data || [];
+    const settings = settingsRes.data || {};
+    const lastJob = (jobLogRes.data && jobLogRes.data[0]) || null;
+
+    const activeSession = dbSessions.find((s: any) => s.is_active === true) || dbSessions[0] || null;
+    const activeId = activeSession ? activeSession.id : "";
+
+    const totalCompanies = companies.length;
+    const sentCompanies = new Set(
+      emails.filter((e: any) => ["sent", "sent_ok", "replied"].includes(e.status)).map((e: any) => e.company_id)
+    ).size;
+    const replied = emails.filter((e: any) => e.status === "replied").length;
+
+    const state = {
       user: { id: user.id, email: user.email },
-    });
+      session: {
+        active_id: activeId,
+        sessions: dbSessions.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          kind: s.kind || s.session_kind || "job_search",
+          autopilot_enabled: s.autopilot_enabled !== false,
+          can_delete: dbSessions.length > 1,
+        })),
+      },
+      companies,
+      emails,
+      stats: {
+        total_companies: totalCompanies,
+        valid_sent_companies: sentCompanies,
+        replies: replied,
+      },
+      rate_limit: {
+        limit: Number(settings.daily_contact_limit || 10),
+        used_today: 0,
+      },
+      autopilot: {
+        enabled: activeSession ? activeSession.autopilot_enabled !== false : false,
+      },
+      job: lastJob
+        ? {
+            status: lastJob.status || "neutral",
+            label: lastJob.label || "",
+            started_at: lastJob.created_at,
+            log: lastJob.log || "",
+          }
+        : { status: "neutral", label: "", started_at: null, log: "" },
+      connections: {
+        google: {
+          connected: false,
+          email: null,
+          status: "non connecté",
+        },
+        serpapi: {
+          connected: false,
+          status: "non connecté",
+        },
+      },
+      copy: settings.ui_copy || null,
+    };
+
+    return jsonResponse(state);
   } catch (e) {
     return errorResponse(e instanceof Error ? e.message : "Unknown error", 500);
   }
