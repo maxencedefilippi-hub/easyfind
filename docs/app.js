@@ -28,14 +28,29 @@
     return SUPABASE_URL + "/functions/v1/" + name;
   }
 
+  async function getSessionToken() {
+    // 1. Priorité: client supabase exposé par dashboard.html (window.__supa)
+    try {
+      if (window.__supa) {
+        const { data } = await window.__supa.auth.getSession();
+        if (data && data.session && data.session.access_token) return data.session.access_token;
+      }
+    } catch (e) { console.warn('[shim] __supa error:', e); }
+    // 2. Fallback: localStorage brute
+    return getAccessToken();
+  }
+
   window.fetch = async function(input, init) {
     let url = (typeof input === "string") ? input : (input && input.url) || "";
     if (url.startsWith("/api/")) {
-      const token = getAccessToken();
+      const token = await getSessionToken();
       const headers = new Headers((init && init.headers) || {});
-      headers.set("Authorization", "Bearer " + (token || SUPABASE_ANON_KEY));
+      headers.set("Authorization", "Bearer " + token);
       headers.set("apikey", SUPABASE_ANON_KEY);
-      return nativeFetch(edgeUrl(url), { ...init, headers });
+      const edge = edgeUrl(url);
+      const resp = await nativeFetch(edge, { ...init, headers });
+      if (!resp.ok) console.error('[shim] ' + url + ' -> ' + resp.status, await resp.clone().text().catch(() => ''));
+      return resp;
     }
     return nativeFetch(input, init);
   };
