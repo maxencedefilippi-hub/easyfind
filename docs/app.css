@@ -367,6 +367,16 @@ a {
   background: #fbfcfb;
 }
 
+.page-dashboard .session-create {
+  display: none;
+}
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
 .session-control {
   align-content: start;
 }

@@ -760,7 +760,9 @@ async function fetchParameters() {
 }
 
 async function fetchPrompts() {
-  const response = await fetch("/api/prompts");
+  const sessionId = activeSessionId();
+  const url = sessionId ? `/api/prompts?session_id=${encodeURIComponent(sessionId)}` : "/api/prompts";
+  const response = await fetch(url);
   promptState = await response.json();
   renderPrompts();
 }
@@ -2496,7 +2498,12 @@ function bindEvents() {
   });
   safeBind("toggleSettingsPanelBtn", "click", toggleSettingsPanel);
   safeBind("savePromptsBtn", "click", async () => {
-    await runAction("save_prompts", { prompts: collectPrompts() });
+    const sessionId = activeSessionId();
+    if (sessionId) {
+      await runAction("save_session_prompts", { session_id: sessionId, prompts: collectPrompts() });
+    } else {
+      await runAction("save_prompts", { prompts: collectPrompts() });
+    }
     await fetchPrompts();
   });
   safeBind("togglePromptsPanelBtn", "click", togglePromptsPanel);
@@ -2818,10 +2825,15 @@ function serpApiMiniGuide() {
 async function switchSession() {
   selectedCompanyId = "";
   selectedEmailId = "";
-  $("settings").dataset.loaded = "";
-  $("prompt-use_case").dataset.userChanged = "";
+  const settingsPanel = $("settings");
+  if (settingsPanel) settingsPanel.dataset.loaded = "";
+  const useCaseField = $("prompt-use_case");
+  if (useCaseField) useCaseField.dataset.userChanged = "";
   promptState = null;
-  await runAction("set_active_session", { session_id: $("sessionSelect").value });
+  const select = $("sessionSelect");
+  if (!select || !select.value) return;
+  await runAction("switch_session", { session_id: select.value });
+  await fetchState({ force: true });
   await fetchParameters();
   await fetchPrompts();
   restoreSessionChatForActiveSession({ force: true });

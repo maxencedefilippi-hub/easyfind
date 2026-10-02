@@ -1,4 +1,4 @@
-import { getUserClient, getAdminClient, jsonResponse, errorResponse, corsHeaders } from "../_shared/supabase.ts";
+import { getAuthUser, getAdminClient, jsonResponse, errorResponse, corsHeaders } from "../_shared/supabase.ts";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY")!;
@@ -66,9 +66,8 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return errorResponse("Missing authorization", 401);
 
-    const userClient = getUserClient(authHeader);
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) return errorResponse("Invalid token", 401);
+    const user = await getAuthUser(authHeader);
+    if (!user) return errorResponse("Invalid token", 401);
 
     const admin = getAdminClient();
 

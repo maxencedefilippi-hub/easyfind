@@ -1,4 +1,4 @@
-import { getUserClient, getAdminClient, jsonResponse, errorResponse, corsHeaders } from "../_shared/supabase.ts";
+import { getAuthUser, getAdminClient, jsonResponse, errorResponse, corsHeaders } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders() });
@@ -7,28 +7,44 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return errorResponse("Missing authorization", 401);
 
-    const userClient = getUserClient(authHeader);
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) return errorResponse("Invalid token", 401);
+    const user = await getAuthUser(authHeader);
+    if (!user) return errorResponse("Invalid token", 401);
 
     const admin = getAdminClient();
 
-    const [companiesRes, emailsRes, sessionsRes, settingsRes, jobLogRes] = await Promise.all([
-      admin.from("companies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      admin.from("emails").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      admin.from("sessions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+    // Session demandée via ?session_id= sinon la session active de l'utilisateur
+    const url = new URL(req.url);
+    const requestedSessionId = url.searchParams.get("session_id");
+    const { data: dbSessions } = await admin
+      .from("sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    const sessions = dbSessions || [];
+    const activeSession =
+      (requestedSessionId && sessions.find((s: any) => s.id === requestedSessionId)) ||
+      sessions.find((s: any) => s.status === "active") ||
+      sessions[0] ||
+      null;
+    const activeId = activeSession ? activeSession.id : "";
+
+    const [companiesRes, emailsRes, settingsRes, jobLogRes] = await Promise.all([
+      activeId
+        ? admin.from("companies").select("*").eq("user_id", user.id).eq("session_id", activeId).order("created_at", { ascending: false })
+        : admin.from("companies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      activeId
+        ? admin.from("emails").select("*").eq("user_id", user.id).eq("session_id", activeId).order("created_at", { ascending: false })
+        : admin.from("emails").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       admin.from("settings").select("*").eq("user_id", user.id).maybeSingle(),
       admin.from("job_log").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1),
     ]);
 
     const companies = companiesRes.data || [];
     const emails = emailsRes.data || [];
-    const dbSessions = sessionsRes.data || [];
     const settings = settingsRes.data || {};
     const lastJob = (jobLogRes.data && jobLogRes.data[0]) || null;
-
-    const activeSession = dbSessions.find((s: any) => s.is_active === true) || dbSessions[0] || null;
-    const activeId = activeSession ? activeSession.id : "";
 
     const totalCompanies = companies.length;
     const sentCompanies = new Set(
@@ -40,12 +56,12 @@ Deno.serve(async (req) => {
       user: { id: user.id, email: user.email },
       session: {
         active_id: activeId,
-        sessions: dbSessions.map((s: any) => ({
+        sessions: sessions.map((s: any) => ({
           id: s.id,
           name: s.name,
           kind: s.kind || s.session_kind || "job_search",
           autopilot_enabled: s.autopilot_enabled !== false,
-          can_delete: dbSessions.length > 1,
+          can_delete: sessions.length > 1,
         })),
       },
       companies,

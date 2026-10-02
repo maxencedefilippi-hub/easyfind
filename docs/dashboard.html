@@ -6,7 +6,7 @@
     <title>EasyFind</title>
     <link rel="stylesheet" href="./app.css?v=2" />
   </head>
-  <body>
+  <body class="page-dashboard">
     <script type="module">
       import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
       const supa = createClient("https://nkhcdkvepcjyxpwiattc.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raGNka3ZlcGNqeXhwd2lhdHRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTc1OTYsImV4cCI6MjEwNTY3MzU5Nn0.uKPoW5qg5x7U777nGdjVfCIPyu-D1gG61Z_9iCcXqgg");
@@ -89,21 +89,7 @@
             </div>
           </div>
 
-          <div class="session-create">
-            <span class="label">Nouvelle session</span>
-            <div class="session-create-row">
-              <input id="newSessionName" placeholder="Nom de session" />
-              <select id="newSessionKind">
-                <option value="job_search">Job</option>
-                <option value="sales_prospecting">Commercial</option>
-                <option value="find_clients">Clients</option>
-                <option value="partnership">Partenariat</option>
-                <option value="supplier">Fournisseurs</option>
-                <option value="custom">Autre</option>
-              </select>
-              <button id="createSessionBtn">Créer</button>
-            </div>
-          </div>
+
 
           <div class="session-list-panel">
             <div class="session-list-heading">

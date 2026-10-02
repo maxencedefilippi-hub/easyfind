@@ -1,4 +1,4 @@
-import { getUserClient, getAdminClient, jsonResponse, errorResponse, corsHeaders } from "../_shared/supabase.ts";
+import { getAuthUser, getAdminClient, jsonResponse, errorResponse, corsHeaders } from "../_shared/supabase.ts";
 
 // Dispatch des actions du dashboard. Les actions longues (recherche SerpApi, génération emails)
 // sont déclenchées côté serveur GitHub Actions - ici on gère les actions légères CRUD.
@@ -7,9 +7,8 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return errorResponse("Missing authorization", 401);
-    const userClient = getUserClient(authHeader);
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) return errorResponse("Invalid token", 401);
+    const user = await getAuthUser(authHeader);
+    if (!user) return errorResponse("Invalid token", 401);
 
     const body = await req.json();
     const action = body.action || "";
@@ -110,6 +109,27 @@ Deno.serve(async (req) => {
         if (error) return errorResponse(error.message, 500);
         return jsonResponse({ ok: true });
       }
+      case "save_session_prompts": {
+        const { session_id, prompts } = body;
+        if (!session_id) return errorResponse("session_id requis");
+        if (!prompts || typeof prompts !== "object") return errorResponse("prompts requis");
+        // Stocker les prompts dans sessions.config.prompts (JSONB)
+        const { data: session } = await admin
+          .from("sessions")
+          .select("config")
+          .eq("id", session_id)
+          .eq("user_id", uid)
+          .maybeSingle();
+        const config = session?.config || {};
+        config.prompts = prompts;
+        const { error } = await admin
+          .from("sessions")
+          .update({ config })
+          .eq("id", session_id)
+          .eq("user_id", uid);
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ ok: true });
+      }
       case "save_serpapi_key": {
         const { api_key } = body;
         const key = String(api_key || "").trim();
@@ -153,6 +173,77 @@ Deno.serve(async (req) => {
         if (!session_id) return errorResponse("session_id requis");
         const { error } = await admin.from("sessions").delete().eq("id", session_id).eq("user_id", uid);
         if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ ok: true });
+      }
+      case "set_session_autopilot": {
+        const { session_id, enabled } = body;
+        if (!session_id) return errorResponse("session_id requis");
+        const { error } = await admin.from("sessions").update({ autopilot_enabled: enabled !== false }).eq("id", session_id).eq("user_id", uid);
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ ok: true });
+      }
+      case "mark_form_sent": {
+        const { company_id } = body;
+        if (!company_id) return errorResponse("company_id requis");
+        const { error } = await admin.from("companies").update({ status: "contacted" }).eq("id", company_id).eq("user_id", uid);
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ ok: true });
+      }
+      case "regenerate_email":
+      case "regenerate_form_message":
+      case "generate_form_message": {
+        // La génération de contenu exige l'IA - gérée par GitHub Actions.
+        // Ici: on prépare la demande en job_log pour le prochain run.
+        const { company_id } = body;
+        if (!company_id) return errorResponse("company_id requis");
+        const { error } = await admin.from("job_log").insert({
+          user_id: uid, session_id: null, company_id, email_id: null,
+          action, status: "pending",
+          details: { message: "Demande de génération enregistrée. Elle sera traitée par le prochain run planifié." },
+        });
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ ok: true, queued: true, message: "Demande enregistrée. Le message sera généré par le prochain run automatique." });
+      }
+      case "send_email": {
+        const { email_id } = body;
+        if (!email_id) return errorResponse("email_id requis");
+        const { data: email } = await admin.from("emails").select("*").eq("id", email_id).eq("user_id", uid).maybeSingle();
+        if (!email) return errorResponse("Email introuvable", 404);
+        const { data: tokenRow } = await admin.from("oauth_tokens").select("*").eq("user_id", uid).maybeSingle();
+        if (!tokenRow?.access_token) {
+          return errorResponse("Gmail non connecté. Impossible d'envoyer directement. Copiez le message et envoyez-le manuellement.", 400);
+        }
+        const sendResp = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tokenRow.access_token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            raw: btoa(unescape(encodeURIComponent(
+              `To: ${email.email_to}\r\nSubject: ${email.subject || "(sans objet)"}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${email.body || ""}`
+            ))).replace(/\+/g, "-").replace(/\//g, "_"),
+          }),
+        });
+        if (!sendResp.ok) {
+          const errText = await sendResp.text();
+          return errorResponse(`Gmail a refusé l'envoi: ${errText.slice(0, 200)}`, 502);
+        }
+        await admin.from("emails").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", email_id).eq("user_id", uid);
+        if (email.company_id) {
+          await admin.from("companies").update({ status: "contacted" }).eq("id", email.company_id).eq("user_id", uid);
+        }
+        return jsonResponse({ ok: true });
+      }
+      case "save_google_credentials":
+      case "clear_google_credentials": {
+        // Les credentials OAuth Google (client_id/secret personnels) sont stockés dans settings.
+        const { credentials_json } = body;
+        if (action === "clear_google_credentials") {
+          const { error } = await admin.from("settings").update({ google_credentials_json: null }).eq("user_id", uid);
+          if (error) return errorResponse(error.message, 500);
+        } else {
+          if (!credentials_json) return errorResponse("credentials_json requis");
+          const { error } = await admin.from("settings").update({ google_credentials_json: credentials_json }).eq("user_id", uid);
+          if (error) return errorResponse(error.message, 500);
+        }
         return jsonResponse({ ok: true });
       }
       default:
