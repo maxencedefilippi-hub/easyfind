@@ -1571,14 +1571,19 @@ function renderSessionChatProgress(progress, mode) {
   const safeProgress = Math.max(0, Math.min(100, Number(progress || 0)));
   sessionChatProgress = safeProgress;
   sessionChatMode = mode || "local";
-  $("sessionChatProgressLabel").textContent = `${safeProgress}%`;
-  $("sessionChatProgressBar").style.width = `${safeProgress}%`;
-  if (sessionChatMode === "openai") {
-    $("sessionChatMode").textContent = "Mode IA OpenAI actif";
-  } else if (sessionChatMode === "local_openai_ready" || sessionChatMode === "openai_fallback") {
-    $("sessionChatMode").textContent = "Mode local, IA indisponible";
-  } else {
-    $("sessionChatMode").textContent = "Mode local gratuit";
+  const labelEl = $("sessionChatProgressLabel");
+  if (labelEl) labelEl.textContent = `${safeProgress}%`;
+  const barEl = $("sessionChatProgressBar");
+  if (barEl) barEl.style.width = `${safeProgress}%`;
+  const modeEl = $("sessionChatMode");
+  if (modeEl) {
+    if (sessionChatMode === "openai") {
+      modeEl.textContent = "Mode IA OpenAI actif";
+    } else if (sessionChatMode === "local_openai_ready" || sessionChatMode === "openai_fallback") {
+      modeEl.textContent = "Mode local, IA indisponible";
+    } else {
+      modeEl.textContent = "Mode local gratuit";
+    }
   }
 }
 
@@ -1588,19 +1593,20 @@ function renderSessionChatWaiting() {
   indicator.hidden = !sessionChatWaiting;
   document.body.classList.toggle("session-chat-busy", sessionChatWaiting);
   const sendButton = $("sessionChatSendBtn");
-  if (sendButton) {
-    sendButton.textContent = sessionChatWaiting ? "Attente..." : "Envoyer";
-  }
+  if (!sendButton) return;
+  sendButton.textContent = sessionChatWaiting ? "Attente..." : "Envoyer";
 }
 
 function renderSessionAssistantBlueprint(blueprint) {
+  const outputEl = $("sessionAssistantOutput");
+  if (!outputEl) return;
   const regionList = splitSemicolon(blueprint.parameters?.search_regions || "").slice(0, 10);
   const keywordList = splitSemicolon(blueprint.parameters?.search_keywords || "").slice(0, 8);
   const targetList = splitSemicolon(blueprint.parameters?.target_company_types || "").slice(0, 8);
   const excludedList = splitSemicolon(blueprint.parameters?.excluded_keywords || "").slice(0, 8);
   const questions = blueprint.questions || [];
   const warnings = blueprint.warnings || [];
-  $("sessionAssistantOutput").innerHTML = `
+  outputEl.innerHTML = `
     <strong>${escapeHtml(blueprint.summary || "Session cadrée.")}</strong>
     ${warnings.length ? `<ul>${warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul>` : ""}
     ${
