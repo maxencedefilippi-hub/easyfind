@@ -736,7 +736,7 @@ async function fetchState({ force = false } = {}) {
   if (isUserInteracting() && !force) return;
   const response = await fetch("/api/state");
   state = await response.json();
-  restoreSessionChatForActiveSession();
+  restoreSessionChatForActiveSession({ force });
   render();
 }
 
