@@ -29,7 +29,16 @@
   }
 
   async function getSessionToken() {
-    // 1. Priorité: client supabase exposé par dashboard.html (window.__supa)
+    // 0. Attendre que le client supabase expose sa première session (race au chargement)
+    try {
+      if (window.__supaReady) {
+        await Promise.race([
+          window.__supaReady,
+          new Promise((resolve) => setTimeout(resolve, 3000)),
+        ]);
+      }
+    } catch (e) {}
+    // 1. Priorité: client supabase exposé par la page (window.__supa)
     try {
       if (window.__supa) {
         const { data } = await window.__supa.auth.getSession();
