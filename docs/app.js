@@ -665,6 +665,7 @@ function sessionChatStorageKey(sessionId = activeSessionId()) {
 }
 
 function saveSessionChatState() {
+  console.log("[EasyFind] saveSessionChatState", { sessionId: activeSessionId(), messagesCount: sessionChatMessages.length });
   if (!state?.session) return;
   const payload = {
     messages: sessionChatMessages,
@@ -682,12 +683,17 @@ function clearStoredSessionChat(sessionId = activeSessionId()) {
 }
 
 function restoreSessionChatForActiveSession({ force = false } = {}) {
-  if (!state?.session) return;
+  console.log("[EasyFind] restoreSessionChatForActiveSession called", { force, sessionChatRestoredSessionId });
+  if (!state?.session) { console.log("[EasyFind] no state.session"); return; }
   const sessionId = activeSessionId();
-  if (!force && sessionChatRestoredSessionId === sessionId) return;
+  console.log("[EasyFind] activeSessionId:", sessionId);
+  if (!force && sessionChatRestoredSessionId === sessionId) { console.log("[EasyFind] SKIP - same session"); return; }
   sessionChatRestoredSessionId = sessionId;
   sessionChatWaiting = false;
-  const raw = localStorage.getItem(sessionChatStorageKey(sessionId));
+  const storageKey = sessionChatStorageKey(sessionId);
+  console.log("[EasyFind] Reading localStorage key:", storageKey);
+  const raw = localStorage.getItem(storageKey);
+  console.log("[EasyFind] raw localStorage:", raw ? raw.substring(0, 200) + "..." : "NULL");
   if (!raw) {
     sessionChatMessages = [];
     sessionAssistantBlueprint = null;
