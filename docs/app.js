@@ -24,7 +24,7 @@
 
   function edgeUrl(path) {
     // "/api/state" -> SUPABASE_URL/functions/v1/api-state
-    const name = path.replace(/^\/api\//, "").replace(/\//g, "-");
+    const name = path.replace(/^\/api\//, "api-").replace(/\//g, "-");
     return SUPABASE_URL + "/functions/v1/" + name;
   }
 
