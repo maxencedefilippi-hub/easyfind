@@ -2722,26 +2722,13 @@ function bindEvents() {
 
 function bindNavHighlight() {
   const links = Array.from(document.querySelectorAll(".nav a"));
-  const sections = links
-    .map((link) => document.querySelector(link.getAttribute("href")))
-    .filter(Boolean);
-  if (!("IntersectionObserver" in window) || !sections.length) return;
-  const observer = new IntersectionObserver(
-    (entries) => {
-      const visible = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
-      if (!visible) return;
-      links.forEach((link) => {
-        link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`);
-      });
-    },
-    {
-      rootMargin: "-20% 0px -60% 0px",
-      threshold: [0.12, 0.35, 0.6],
-    },
-  );
-  sections.forEach((section) => observer.observe(section));
+  // Highlight basé sur l'URL courante (pas d'ancres sur ces pages)
+  const currentPath = window.location.pathname.split("/").pop() || "dashboard.html";
+  links.forEach((link) => {
+    const href = link.getAttribute("href") || "";
+    const linkPage = href.split("/").pop() || "";
+    link.classList.toggle("active", linkPage === currentPath || (currentPath === "" && linkPage === "dashboard.html"));
+  });
 }
 
 async function saveSerpApiKeyFromForm() {
