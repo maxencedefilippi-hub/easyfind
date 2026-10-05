@@ -2772,6 +2772,7 @@ async function saveSerpApiKeyFromForm() {
 }
 
 async function saveGoogleCredentialsFromFile(event) {
+  // DEPRECATED: Now using OAuth flow via /auth/google/start
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.name.toLowerCase().endsWith(".json")) {

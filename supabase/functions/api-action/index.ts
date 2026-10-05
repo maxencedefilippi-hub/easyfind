@@ -138,9 +138,7 @@ Deno.serve(async (req) => {
           const test = await fetch(`https://serpapi.com/search?engine=google&q=test&api_key=${encodeURIComponent(key)}`);
           if (!test.ok && test.status === 401) return errorResponse("Clé SerpApi invalide (401 de SerpApi).", 400);
         }
-        const { error } = await admin.from("serpapi_keys").upsert({
-          user_id: uid, api_key_encrypted: key, updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
+        const { error } = await admin.from("settings").update({ serpapi_key: key || null }).eq("user_id", uid);
         if (error) return errorResponse(error.message, 500);
         return jsonResponse({ ok: true });
       }
@@ -209,17 +207,15 @@ Deno.serve(async (req) => {
         if (!email_id) return errorResponse("email_id requis");
         const { data: email } = await admin.from("emails").select("*").eq("id", email_id).eq("user_id", uid).maybeSingle();
         if (!email) return errorResponse("Email introuvable", 404);
-        const { data: tokenRow } = await admin.from("oauth_tokens").select("*").eq("user_id", uid).maybeSingle();
-        if (!tokenRow?.access_token) {
-          return errorResponse("Gmail non connecté. Impossible d'envoyer directement. Copiez le message et envoyez-le manuellement.", 400);
-        }
-        const sendResp = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+        
+        // Use the dedicated gmail-send function (proper OAuth refresh)
+        const sendResp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/api-gmail-send`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${tokenRow.access_token}`, "Content-Type": "application/json" },
+          headers: { Authorization: authHeader, "Content-Type": "application/json" },
           body: JSON.stringify({
-            raw: btoa(unescape(encodeURIComponent(
-              `To: ${email.email_to}\r\nSubject: ${email.subject || "(sans objet)"}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${email.body || ""}`
-            ))).replace(/\+/g, "-").replace(/\//g, "_"),
+            to: email.email_to,
+            subject: email.subject || "(sans objet)",
+            html: email.body || "",
           }),
         });
         if (!sendResp.ok) {

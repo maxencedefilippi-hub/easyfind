@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
       .from("sessions")
       .select("*")
       .eq("user_id", user.id)
+      .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
       null;
     const activeId = activeSession ? activeSession.id : "";
 
-    const [companiesRes, emailsRes, settingsRes, jobLogRes] = await Promise.all([
+    const [companiesRes, emailsRes, settingsRes, jobLogRes, oauthTokensRes, serpApiSettingsRes] = await Promise.all([
       activeId
         ? admin.from("companies").select("*").eq("user_id", user.id).eq("session_id", activeId).order("created_at", { ascending: false })
         : admin.from("companies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -39,18 +40,26 @@ Deno.serve(async (req) => {
         : admin.from("emails").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       admin.from("settings").select("*").eq("user_id", user.id).maybeSingle(),
       admin.from("job_log").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1),
+      admin.from("oauth_tokens").select("*").eq("user_id", user.id).eq("provider", "google").maybeSingle(),
+      admin.from("settings").select("serpapi_key").eq("user_id", user.id).maybeSingle(),
     ]);
 
     const companies = companiesRes.data || [];
     const emails = emailsRes.data || [];
     const settings = settingsRes.data || {};
     const lastJob = (jobLogRes.data && jobLogRes.data[0]) || null;
+    const oauthTokens = oauthTokensRes.data;
+    const serpApiSettings = serpApiSettingsRes.data;
 
     const totalCompanies = companies.length;
     const sentCompanies = new Set(
       emails.filter((e: any) => ["sent", "sent_ok", "replied"].includes(e.status)).map((e: any) => e.company_id)
     ).size;
     const replied = emails.filter((e: any) => e.status === "replied").length;
+
+    const googleConnected = Boolean(oauthTokens?.refresh_token_encrypted);
+    const googleEmail = oauthTokens?.email || null;
+    const serpApiConnected = Boolean(serpApiSettings?.serpapi_key);
 
     const state = {
       user: { id: user.id, email: user.email },
@@ -88,13 +97,15 @@ Deno.serve(async (req) => {
         : { status: "neutral", label: "", started_at: null, log: "" },
       connections: {
         google: {
-          connected: false,
-          email: null,
-          status: "non connecté",
+          connected: googleConnected,
+          email: googleEmail,
+          status: googleConnected ? "connecté" : "non connecté",
+          credentials_present: googleConnected,
         },
         serpapi: {
-          connected: false,
-          status: "non connecté",
+          connected: serpApiConnected,
+          status: serpApiConnected ? "connecté" : "non connecté",
+          api_key_present: serpApiConnected,
         },
       },
       copy: settings.ui_copy || null,

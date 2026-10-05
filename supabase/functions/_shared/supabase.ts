@@ -23,7 +23,7 @@ export function getAdminClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
-export function corsHeaders() {
+export function getCorsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -31,10 +31,14 @@ export function corsHeaders() {
   };
 }
 
+export function corsHeaders() {
+  return getCorsHeaders();
+}
+
 export function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders(), "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(), "Content-Type": "application/json" },
   });
 }
 
