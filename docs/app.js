@@ -29,12 +29,12 @@
   }
 
   async function getSessionToken() {
-    // 0. Attendre que le client supabase expose sa première session (race au chargement)
+    // 0. Attendre que le client supabase expose sa première session (max 500ms)
     try {
       if (window.__supaReady) {
         await Promise.race([
           window.__supaReady,
-          new Promise((resolve) => setTimeout(resolve, 3000)),
+          new Promise((resolve) => setTimeout(resolve, 500)),
         ]);
       }
     } catch (e) {}
@@ -43,20 +43,16 @@
       if (window.__supa) {
         let { data } = await window.__supa.auth.getSession();
         if (data && data.session && data.session.access_token) {
-          // Vérifier expiration (expires_at est en secondes)
           const exp = data.session.expires_at ? data.session.expires_at * 1000 : 0;
-          if (exp && exp < Date.now() + 30000) { // expiré ou < 30s
+          if (exp && exp < Date.now() + 30000) {
             console.log('[shim] token expiré, refresh...');
             const { data: refreshData, error } = await window.__supa.auth.refreshSession();
-            if (!error && refreshData?.session?.access_token) {
-              data = refreshData;
-            }
+            if (!error && refreshData?.session?.access_token) data = refreshData;
           }
           if (data?.session?.access_token) return data.session.access_token;
         }
       }
     } catch (e) { console.warn('[shim] __supa error:', e); }
-    // 2. Fallback: localStorage brute
     return getAccessToken();
   }
 
@@ -2852,9 +2848,11 @@ async function switchSession() {
   const select = $("sessionSelect");
   if (!select || !select.value) return;
   await runAction("switch_session", { session_id: select.value });
-  await fetchState({ force: true });
-  await fetchParameters();
-  await fetchPrompts();
+  await Promise.all([
+    fetchState({ force: true }),
+    fetchParameters(),
+    fetchPrompts(),
+  ]);
   restoreSessionChatForActiveSession({ force: true });
 }
 
@@ -2874,8 +2872,7 @@ async function createSessionFromForm() {
     kind: $("newSessionKind").value,
   });
   $("newSessionName").value = "";
-  await fetchParameters();
-  await fetchPrompts();
+  await Promise.all([fetchParameters(), fetchPrompts()]);
   restoreSessionChatForActiveSession({ force: true });
 }
 
