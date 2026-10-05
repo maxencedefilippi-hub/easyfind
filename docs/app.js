@@ -38,11 +38,22 @@
         ]);
       }
     } catch (e) {}
-    // 1. Priorité: client supabase exposé par la page (window.__supa)
+    // 1. Priorité: client supabase exposé par la page (window.__supa) + auto-refresh si token expiré
     try {
       if (window.__supa) {
-        const { data } = await window.__supa.auth.getSession();
-        if (data && data.session && data.session.access_token) return data.session.access_token;
+        let { data } = await window.__supa.auth.getSession();
+        if (data && data.session && data.session.access_token) {
+          // Vérifier expiration (expires_at est en secondes)
+          const exp = data.session.expires_at ? data.session.expires_at * 1000 : 0;
+          if (exp && exp < Date.now() + 30000) { // expiré ou < 30s
+            console.log('[shim] token expiré, refresh...');
+            const { data: refreshData, error } = await window.__supa.auth.refreshSession();
+            if (!error && refreshData?.session?.access_token) {
+              data = refreshData;
+            }
+          }
+          if (data?.session?.access_token) return data.session.access_token;
+        }
       }
     } catch (e) { console.warn('[shim] __supa error:', e); }
     // 2. Fallback: localStorage brute
