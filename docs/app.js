@@ -2562,8 +2562,14 @@ function bindEvents() {
         alert("Quota quotidien atteint. Relance demain.");
         return;
       }
-      if (action === "generate_emails" && companiesMissingGeneratedEmails().length <= 0) {
-        alert("Aucun mail manquant à créer.");
+      if (action === "generate_emails") {
+        const missing = companiesMissingGeneratedEmails();
+        if (missing.length <= 0) {
+          alert("Aucun mail manquant à créer.");
+          return;
+        }
+        const companyIds = missing.map(c => c.id).slice(0, limit);
+        runAction(action, { company_ids: companyIds });
         return;
       }
       const risky = ["followups", "mark_sent", "mark_form_sent"];
