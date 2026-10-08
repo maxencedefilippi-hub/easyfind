@@ -100,6 +100,15 @@ def main():
             print(f"Company {company_id} not found, skipping")
             continue
 
+        # Skip if company already has a draft/generated email (avoid duplicates)
+        if company.get("latest_email_id") and (company.get("latest_email_status") in ("draft", "generated", "draft_created", "form_generated")):
+            print(f"Company {company_id} already has an active email ({company.get('latest_email_status')}), skipping")
+            # Mark job as done anyway
+            supabase.update("job_log", {
+                "details": {"queued": False, "message": "Skipped: company already has an active email", "email_id": company.get("latest_email_id")},
+            }, filters={"id": job["id"]})
+            continue
+
         # Fetch user settings
         settings = supabase.select("settings", filters={"user_id": user_id}, single=True) or {}
 
