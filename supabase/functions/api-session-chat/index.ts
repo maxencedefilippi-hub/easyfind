@@ -84,24 +84,42 @@ STRUCTURE BLUEPRINT ATTENDUE :
         ...messages.map((m: any) => ({ role: m.role, content: m.content }))
       ];
 
-      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: openaiMessages,
-          temperature: 0.7,
-          max_tokens: 800,
-        }),
-      });
+      let data: any = null;
+      let openaiError = "";
+      // Retry x2 + timeout: les erreurs réseau intermittentes sont fréquentes depuis edge
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 25000);
+          const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${OPENAI_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: openaiMessages,
+              temperature: 0.7,
+              max_tokens: 800,
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (resp.ok) {
+            data = await resp.json();
+            break;
+          }
+          openaiError = `OpenAI ${resp.status}: ${(await resp.text()).slice(0, 200)}`;
+          if (resp.status === 400 || resp.status === 401) break; // pas la peine de retry
+        } catch (fetchErr) {
+          openaiError = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+        }
+      }
 
-      if (!resp.ok) {
-        const err = await resp.text();
-        console.error("OpenAI error:", err);
-        // Fallback to local
+      if (!data) {
+        console.error("OpenAI error:", openaiError);
+        // Fallback to local - ne JAMAIS renvoyer 500
         const reply = generateLocalReply(messages[messages.length - 1]?.content || "", messages.length, use_case, parameters);
         const progress = Math.min(90, messages.length * 15);
         const done = progress >= 90;
@@ -109,7 +127,6 @@ STRUCTURE BLUEPRINT ATTENDUE :
         return jsonResponse({ ok: true, reply, blueprint, progress, mode: "openai_fallback", done });
       }
 
-      const data = await resp.json();
       const content = data.choices?.[0]?.message?.content?.trim() || "";
 
       // Try to parse JSON blueprint if present
