@@ -1518,7 +1518,7 @@ async function advanceSessionChat() {
       body: JSON.stringify({
         messages: sessionChatMessages,
         use_case: $("prompt-use_case").value || activeSessionKind(),
-        mode: "local",
+        mode: "openai",
         parameters: collectParameters(),
         prompts: collectPrompts(),
       }),
