@@ -1,0 +1,29 @@
+name: Generate Emails
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # toutes les 30 minutes
+  workflow_dispatch:
+
+jobs:
+  generate-emails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      PYTHON_VERSION: '3.11'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install httpx==0.25.2 cryptography==41.0.7 python-dotenv==1.0.0 pydantic==2.8.2 pydantic-settings==2.4.0 pydantic[email]==2.8.2 openai==1.35.12
+      - name: Run email generation
+        run: python .github/scripts/generate_emails.py
